@@ -27,7 +27,7 @@ class _FakeEngine implements PlayerEngine {
   @override
   VideoController? get videoController => null;
   @override
-  Future<void> open(String uri) async {}
+  Future<void> open(String uri, {Duration? startAt}) async {}
   @override
   Future<void> play() async {}
   @override

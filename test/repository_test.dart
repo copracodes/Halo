@@ -174,5 +174,32 @@ void main() {
     test('resume position is null for an unknown file', () async {
       expect(await progress.resumePositionFor('/nope.mkv'), isNull);
     });
+
+    test('resume state carries the duration recorded with the position',
+        () async {
+      // The player needs the stored duration to judge, before opening a file,
+      // whether the saved position is worth starting from.
+      await progress.savePosition(
+        path,
+        position: const Duration(minutes: 15),
+        duration: const Duration(hours: 2),
+      );
+
+      final state = await progress.resumeStateFor(path);
+      expect(state, isNotNull);
+      expect(state!.position, const Duration(minutes: 15));
+      expect(state.duration, const Duration(hours: 2));
+    });
+
+    test('resume state is null once the file is finished', () async {
+      await progress.savePosition(
+        path,
+        position: const Duration(minutes: 15),
+        duration: const Duration(hours: 2),
+      );
+      await progress.markFinished(path);
+
+      expect(await progress.resumeStateFor(path), isNull);
+    });
   });
 }

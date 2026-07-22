@@ -17,10 +17,26 @@ class ProgressRepository {
   /// file was already watched to the end. The decision of whether a position is
   /// *worth offering* (min/end thresholds) lives in the player's ResumePolicy;
   /// this just returns the stored point.
-  Future<Duration?> resumePositionFor(String filePath) async {
+  Future<Duration?> resumePositionFor(String filePath) async =>
+      (await resumeStateFor(filePath))?.position;
+
+  /// The saved resume point for [filePath] — the position *and* the duration
+  /// observed when it was written — or null if there is none or the file was
+  /// watched to the end.
+  ///
+  /// The duration comes back too so the player can judge whether a position is
+  /// worth resuming from *before* it opens the file, when the real duration
+  /// isn't known yet. That lets it start decoding at the resume point instead
+  /// of seeking there afterwards.
+  Future<({Duration position, Duration duration})?> resumeStateFor(
+    String filePath,
+  ) async {
     final row = await _rowForPath(filePath);
     if (row == null || row.isFinished) return null;
-    return Duration(milliseconds: row.positionMs);
+    return (
+      position: Duration(milliseconds: row.positionMs),
+      duration: Duration(milliseconds: row.durationMs),
+    );
   }
 
   /// Reactive continue-watching feed: every started-but-unfinished file, joined

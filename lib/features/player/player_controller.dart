@@ -32,6 +32,11 @@ const _saveInterval = Duration(seconds: 5);
 /// How long the resume prompt lingers before it auto-dismisses and continues.
 const _resumePromptTimeout = Duration(seconds: 12);
 
+/// How far playback may sit from the requested resume point before it counts as
+/// having missed it. Keyframe snapping moves a start position by a second or
+/// two, which is not worth a corrective seek.
+const _resumeDrift = Duration(seconds: 5);
+
 /// Owns the media_kit [Player]/[VideoController] and every piece of playback and
 /// control state for a single video. Widgets read [PlayerModel] and call these
 /// methods; no playback logic lives in the widgets.
@@ -69,6 +74,16 @@ class PlayerController extends Notifier<PlayerModel> {
   /// When set, a saved position is seeked to silently instead of prompting —
   /// the user already chose to continue by tapping a continue-watching card.
   bool _autoResume = false;
+
+  /// The stored position this session opened from, if there was one. Guards
+  /// that point against being erased before playback has caught up to it (see
+  /// [ResumePolicy.actionFor]). Cleared by [startOver], which is the viewer
+  /// explicitly abandoning it.
+  Duration? _restoredFrom;
+
+  /// Whether the file was opened positioned at [_savedResume] rather than at
+  /// the start.
+  bool _openedAtResume = false;
 
   /// Cached position/duration so teardown can persist without reading `state`
   /// (which throws once the notifier is disposed).
@@ -150,7 +165,20 @@ class PlayerController extends Notifier<PlayerModel> {
 
     // Load any saved resume position before opening; evaluated once we know
     // the duration (see _maybeOfferResume).
-    _savedResume = await _progress!.resumePositionFor(_progressKey);
+    final saved = await _progress!.resumeStateFor(_progressKey);
+    _savedResume = saved?.position;
+    // Guard it from the moment it is read: the periodic save starts running
+    // well before playback has reached this point.
+    _restoredFrom = _savedResume;
+
+    // Decide here, before opening, whether this position is worth resuming
+    // from — using the duration stored alongside it, since the real one isn't
+    // known until the file is loaded. The payoff is that playback can *begin*
+    // at the resume point (see [PlayerEngine.open]) instead of starting at
+    // zero and seeking, which races the demuxer and visibly snaps back.
+    _openedAtResume = saved != null &&
+        saved.duration > Duration.zero &&
+        _policy.shouldOffer(saved.position, saved.duration);
 
     // Single-player guard: dispose any engine still alive app-wide before
     // creating a new one, so two players can never play at once.
@@ -165,7 +193,10 @@ class PlayerController extends Notifier<PlayerModel> {
     // Only open() itself represents a "can't play this file" failure; state
     // mutations stay outside the try so framework errors surface as real bugs.
     try {
-      await engine.open(path);
+      await engine.open(
+        path,
+        startAt: _openedAtResume ? _savedResume : null,
+      );
     } on Object catch (error) {
       state = state.copyWith(
         phase: PlayerPhase.error,
@@ -431,24 +462,26 @@ class PlayerController extends Notifier<PlayerModel> {
 
   // --- Resume where I left off --------------------------------------------
 
-  /// Once the duration is known, offer to resume if the saved position is well
-  /// past the start and not near the end. Runs at most once per open.
+  /// Once the duration is known, decide what to do about the saved position.
+  /// Runs at most once per open.
+  ///
+  /// Playback is already sitting at that position — [open] started the file
+  /// there — so nothing here seeks. Continue Watching simply carries on; every
+  /// other entry point pauses and asks.
   void _maybeOfferResume(Duration duration) {
     if (_resumeChecked || duration <= Duration.zero) return;
     _resumeChecked = true;
 
     final saved = _savedResume;
-    if (saved == null) return;
+    if (saved == null || !_openedAtResume) return;
+    // The real duration can differ from the one recorded alongside the
+    // position; re-check against it before putting the choice to the viewer.
     if (!_policy.shouldOffer(saved, duration)) return;
 
-    // Continue Watching: the tap *was* the choice, so pick up where they left
-    // off without a second question.
-    if (_autoResume) {
-      _engine?.seek(saved);
-      return;
-    }
+    // Continue Watching: the tap *was* the choice, so don't ask again.
+    if (_autoResume) return;
 
-    // Hold at the start until the user chooses, auto-continuing if they don't.
+    // Hold here until the user chooses, auto-continuing if they don't.
     _engine?.pause();
     state = state.copyWith(resumeFrom: saved);
     _resumePromptTimer = Timer(_resumePromptTimeout, () => _dismissResume(play: true));
@@ -456,11 +489,19 @@ class PlayerController extends Notifier<PlayerModel> {
 
   void resumeFromSaved() {
     final target = state.resumeFrom;
-    if (target != null) _engine?.seek(target);
+    // Normally a no-op: the file was opened at this point. The seek is a
+    // fallback for a format where mpv's start option didn't take, so "Resume"
+    // is never a lie.
+    if (target != null && (_lastPosition - target).abs() > _resumeDrift) {
+      _engine?.seek(target);
+    }
     _dismissResume(play: true);
   }
 
   void startOver() {
+    // Deliberately abandoning the saved point, so stop protecting it — from
+    // here a low position really does mean "back at the start".
+    _restoredFrom = null;
     _engine?.seek(Duration.zero);
     _dismissResume(play: true);
   }
@@ -479,12 +520,22 @@ class PlayerController extends Notifier<PlayerModel> {
     if (progress == null) return;
     final position = _lastPosition;
     final duration = _lastDuration;
-    if (duration <= Duration.zero) return;
-    // Don't persist trivial starts or near-the-end positions.
-    if (_policy.shouldPersist(position, duration)) {
-      progress.savePosition(_progressKey, position: position, duration: duration);
-    } else {
-      progress.clearProgress(_progressKey);
+
+    switch (_policy.actionFor(
+      position,
+      duration,
+      restored: _restoredFrom != null,
+    )) {
+      case ProgressAction.save:
+        progress.savePosition(
+          _progressKey,
+          position: position,
+          duration: duration,
+        );
+      case ProgressAction.discard:
+        progress.clearProgress(_progressKey);
+      case ProgressAction.keep:
+        break;
     }
   }
 

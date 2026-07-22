@@ -11,7 +11,9 @@ abstract class PlayerEngine {
   PlayerStream get stream;
   VideoController? get videoController;
 
-  Future<void> open(String uri);
+  /// Opens [uri]. When [startAt] is given, playback *begins* at that position
+  /// rather than starting at zero and seeking afterwards.
+  Future<void> open(String uri, {Duration? startAt});
   Future<void> play();
   Future<void> pause();
   Future<void> playOrPause();
@@ -39,8 +41,14 @@ class MediaKitEngine implements PlayerEngine {
   @override
   VideoController? get videoController => _videoController;
 
+  /// [Media.start] becomes mpv's per-file `start` option, applied in its
+  /// `on_load` hook — i.e. before the file is decoded. That is why it is used
+  /// in preference to seeking once playback is underway: a seek issued right
+  /// after open races the demuxer becoming ready and can be silently dropped,
+  /// leaving playback at zero.
   @override
-  Future<void> open(String uri) => _player.open(Media(uri));
+  Future<void> open(String uri, {Duration? startAt}) =>
+      _player.open(Media(uri, start: startAt));
 
   @override
   Future<void> play() => _player.play();
