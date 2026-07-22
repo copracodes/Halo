@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'library_providers.dart';
+import '../metadata/metadata_providers.dart';
 import 'show_detail_screen.dart';
-import 'show_grouping.dart';
 import 'widgets/library_states.dart';
 import 'widgets/media_carousel.dart';
 import 'widgets/poster_card.dart';
@@ -16,7 +15,7 @@ class TvShowsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final showsAsync = ref.watch(showsProvider);
+    final showsAsync = ref.watch(showEntriesProvider);
 
     return showsAsync.when(
       loading: () => const LibraryLoading(),
@@ -44,17 +43,21 @@ class TvShowsTab extends ConsumerWidget {
               sliver: PosterSliverGrid(
                 itemCount: shows.length,
                 itemBuilder: (context, index) {
-                  final show = shows[index];
+                  final entry = shows[index];
+                  final tag = 'show:${entry.id}';
                   return PosterCard(
-                    title: show.title,
-                    subtitle: _episodeSummary(show),
-                    badge: show.seasonCount > 1
-                        ? '${show.seasonCount} seasons'
+                    title: entry.title,
+                    subtitle: _episodeSummary(entry),
+                    imagePath: entry.posterPath,
+                    heroTag: tag,
+                    badge: entry.show.seasonCount > 1
+                        ? '${entry.show.seasonCount} seasons'
                         : null,
                     icon: Icons.tv_outlined,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => ShowDetailScreen(showId: show.id),
+                        builder: (_) =>
+                            ShowDetailScreen(showId: entry.id, heroTag: tag),
                       ),
                     ),
                   );
@@ -68,8 +71,8 @@ class TvShowsTab extends ConsumerWidget {
     );
   }
 
-  static String _episodeSummary(Show show) {
-    final count = show.episodeCount;
+  static String _episodeSummary(ShowEntry entry) {
+    final count = entry.show.episodeCount;
     return '$count episode${count == 1 ? '' : 's'}';
   }
 }

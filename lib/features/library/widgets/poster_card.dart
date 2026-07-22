@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -5,24 +7,24 @@ import '../../../core/theme/app_colors.dart';
 /// A tappable library card: an artwork tile with a title and short caption
 /// beneath it.
 ///
-/// Posters arrive in Phase 3 (TMDB). Until then [poster] is null and the tile
-/// renders a dark gradient derived from the title, so the grids read as designed
-/// artwork rather than empty boxes. Swapping real posters in is a one-argument
-/// change at the call site — pass a [poster] and the image takes over the tile;
-/// the caption, the progress bar, the press animation, and every grid that uses
-/// this card stay exactly as they are. A failed image decode falls back to the
-/// same gradient, which keeps the offline-first promise.
+/// With [imagePath] set the tile shows cached TMDB artwork, fading in as it
+/// decodes. Without one — unmatched title, or metadata not synced yet — it
+/// renders a dark gradient derived from the title, so a mixed grid still reads
+/// as a designed set rather than a row of holes. The same fallback catches a
+/// cache file that has been deleted, which is what keeps the grid intact
+/// offline.
 class PosterCard extends StatefulWidget {
   const PosterCard({
     super.key,
     required this.title,
     required this.onTap,
     this.subtitle,
-    this.poster,
+    this.imagePath,
     this.progress,
     this.badge,
     this.aspectRatio = _posterAspect,
     this.icon = Icons.movie_outlined,
+    this.heroTag,
   });
 
   /// Standard poster proportions, so the grid already has the shape real
@@ -63,8 +65,10 @@ class PosterCard extends StatefulWidget {
   /// One-line caption under the title: a year, an episode code, a season count.
   final String? subtitle;
 
-  /// Artwork for the tile. Null today; Phase 3 supplies one.
-  final ImageProvider? poster;
+  /// Absolute path to a **cached local** artwork file, or null for the
+  /// placeholder. Never a URL: artwork is downloaded during metadata sync so
+  /// the library looks identical offline (see `MetadataImageCache`).
+  final String? imagePath;
 
   /// Watch progress as 0–1, drawn as a bar across the bottom of the tile. Null
   /// hides the bar entirely.
@@ -78,6 +82,10 @@ class PosterCard extends StatefulWidget {
   /// Watermark shown on the placeholder tile, hinting at the kind of content.
   final IconData icon;
 
+  /// When set, the artwork flies into the detail screen's header. Must be
+  /// unique on screen, and must match the tag on the destination.
+  final Object? heroTag;
+
   @override
   State<PosterCard> createState() => _PosterCardState();
 }
@@ -87,6 +95,14 @@ class _PosterCardState extends State<PosterCard> {
 
   void _setPressed(bool value) {
     if (_pressed != value) setState(() => _pressed = value);
+  }
+
+  /// Wraps the tile in a [Hero] only when a tag was given — an untagged card
+  /// must not join a flight, and two cards sharing a tag would throw.
+  Widget _maybeHero(Widget child) {
+    final tag = widget.heroTag;
+    if (tag == null) return child;
+    return Hero(tag: tag, child: child);
   }
 
   @override
@@ -109,12 +125,14 @@ class _PosterCardState extends State<PosterCard> {
           children: [
             AspectRatio(
               aspectRatio: widget.aspectRatio,
-              child: _PosterTile(
-                title: widget.title,
-                poster: widget.poster,
-                progress: widget.progress,
-                badge: widget.badge,
-                icon: widget.icon,
+              child: _maybeHero(
+                _PosterTile(
+                  title: widget.title,
+                  imagePath: widget.imagePath,
+                  progress: widget.progress,
+                  badge: widget.badge,
+                  icon: widget.icon,
+                ),
               ),
             ),
             const SizedBox(height: PosterCard._titleGap),
@@ -154,21 +172,21 @@ class _PosterCardState extends State<PosterCard> {
 class _PosterTile extends StatelessWidget {
   const _PosterTile({
     required this.title,
-    required this.poster,
+    required this.imagePath,
     required this.progress,
     required this.badge,
     required this.icon,
   });
 
   final String title;
-  final ImageProvider? poster;
+  final String? imagePath;
   final double? progress;
   final String? badge;
   final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    final poster = this.poster;
+    final imagePath = this.imagePath;
     final badge = this.badge;
     final progress = this.progress;
 
@@ -178,14 +196,11 @@ class _PosterTile extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           // The placeholder always sits underneath, so a slow or failed image
-          // never flashes a bare hole.
+          // never flashes a bare hole — and a deleted cache file degrades to
+          // the gradient rather than an error box.
           _PlaceholderArt(title: title, icon: icon),
-          if (poster != null)
-            Image(
-              image: poster,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
+          if (imagePath != null)
+            _FadingArtwork(path: imagePath),
           if (badge != null)
             Positioned(
               top: 6,
@@ -284,6 +299,51 @@ class _PlaceholderArt extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Cached artwork that fades in once decoded.
+///
+/// Decoding is capped to the tile's own pixel size: a wall of posters decoded
+/// at full resolution is the classic way to make a grid stutter and blow up
+/// memory, and nothing here is ever displayed larger than its tile.
+class _FadingArtwork extends StatelessWidget {
+  const _FadingArtwork({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cacheWidth = constraints.maxWidth.isFinite
+            ? (constraints.maxWidth * devicePixelRatio).round()
+            : null;
+
+        return Image(
+          image: ResizeImage.resizeIfNeeded(
+            cacheWidth,
+            null,
+            FileImage(File(path)),
+          ),
+          fit: BoxFit.cover,
+          // Missing file (cache cleared, storage reclaimed) shows the
+          // placeholder underneath rather than an error glyph.
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded) return child;
+            return AnimatedOpacity(
+              opacity: frame == null ? 0 : 1,
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOut,
+              child: child,
+            );
+          },
+        );
+      },
     );
   }
 }

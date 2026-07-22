@@ -2,21 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../metadata/metadata_providers.dart';
 import '../player/play_media.dart';
 import 'library_providers.dart';
 import 'show_grouping.dart';
+import 'widgets/backdrop_header.dart';
 import 'widgets/episode_tile.dart';
 import 'widgets/library_states.dart';
 
-/// A show's seasons and episodes.
+/// A show's seasons and episodes, enriched with TMDB names and stills.
 ///
 /// The show is looked up by id on every build rather than passed in, so the
-/// screen stays live: a rescan that adds episodes, or a folder removal that
-/// takes them away, is reflected here without leaving the screen.
+/// screen stays live: a rescan that adds episodes, a folder removal, or a
+/// metadata sync landing mid-view is reflected here without leaving.
 class ShowDetailScreen extends ConsumerStatefulWidget {
-  const ShowDetailScreen({super.key, required this.showId});
+  const ShowDetailScreen({super.key, required this.showId, this.heroTag});
 
   final String showId;
+
+  /// Matches the tag on the card that opened this screen.
+  final Object? heroTag;
 
   @override
   ConsumerState<ShowDetailScreen> createState() => _ShowDetailScreenState();
@@ -38,22 +43,20 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showAsync = ref.watch(showByIdProvider(widget.showId));
+    final entryAsync = ref.watch(showEntryProvider(widget.showId));
     final progressByPath = ref.watch(progressByPathProvider);
+    final finished = ref.watch(finishedPathsProvider).value ?? const <String>{};
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(showAsync.value?.title ?? 'Show'),
-      ),
-      body: showAsync.when(
+      body: entryAsync.when(
         loading: () => const LibraryLoading(),
         error: (error, _) => LibraryMessage(
           icon: Icons.error_outline,
           title: 'Could not load this show.',
           detail: '$error',
         ),
-        data: (show) {
-          if (show == null || show.seasons.isEmpty) {
+        data: (entry) {
+          if (entry == null || entry.show.seasons.isEmpty) {
             return const LibraryMessage(
               icon: Icons.tv_off_outlined,
               title: 'This show is no longer in your library',
@@ -61,11 +64,28 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
             );
           }
 
+          final show = entry.show;
           final season = _selected(show.seasons);
+          // Episode records are keyed by TMDB show id; an unmatched show simply
+          // has none, and the rows fall back to their file-derived labels.
+          final episodeMeta = entry.tmdbId == null
+              ? const <String, dynamic>{}
+              : ref.watch(episodeMetadataProvider(entry.tmdbId!)).value ??
+                  const {};
 
           return CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(child: _ShowHeader(show: show)),
+              SliverToBoxAdapter(
+                child: BackdropHeader(
+                  imagePath: entry.backdropPath,
+                  posterPath: entry.posterPath,
+                  title: entry.title,
+                  heroTag: widget.heroTag,
+                  facts: _facts(entry),
+                ),
+              ),
+              if (entry.overview != null)
+                SliverToBoxAdapter(child: _Overview(text: entry.overview!)),
               if (show.seasons.length > 1)
                 SliverToBoxAdapter(
                   child: _SeasonSelector(
@@ -80,7 +100,12 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
                   final episode = season.episodes[index];
                   return EpisodeTile(
                     file: episode,
+                    metadata: episodeMeta[episodeKey(
+                      episode.parsedSeason,
+                      episode.parsedEpisode,
+                    )],
                     progress: progressByPath[episode.filePath],
+                    watched: finished.contains(episode.filePath),
                     onTap: () => playMediaFile(context, episode),
                   );
                 },
@@ -92,56 +117,37 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
       ),
     );
   }
-}
 
-/// Title block above the episode list. The gradient panel is where a TMDB
-/// backdrop will go in Phase 3; the layout is already sized for it.
-class _ShowHeader extends StatelessWidget {
-  const _ShowHeader({required this.show});
-
-  final Show show;
-
-  String get _summary {
+  List<String> _facts(ShowEntry entry) {
+    final show = entry.show;
     final episodes = show.episodeCount;
     final seasons = show.seasonCount;
-    final episodeText = '$episodes episode${episodes == 1 ? '' : 's'}';
-    if (seasons <= 1) return episodeText;
-    return '$seasons seasons · $episodeText';
+    return [
+      if (entry.metadata?.firstAirYear != null) '${entry.metadata!.firstAirYear}',
+      if (seasons > 1) '$seasons seasons',
+      '$episodes episode${episodes == 1 ? '' : 's'}',
+    ];
   }
+}
+
+class _Overview extends StatelessWidget {
+  const _Overview({required this.text});
+
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.surface, AppColors.background],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Text(
+        text,
+        maxLines: 4,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 13,
+          height: 1.45,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            show.title,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              height: 1.15,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _summary,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -162,10 +168,10 @@ class _SeasonSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 52,
+      height: 60,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount: seasons.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {

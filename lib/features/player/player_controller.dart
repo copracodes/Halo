@@ -11,6 +11,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../data/repositories/progress_repository.dart';
 import 'player_engine.dart';
+import 'resume_behavior.dart';
 import 'player_model.dart';
 import 'resume_policy.dart';
 
@@ -71,9 +72,8 @@ class PlayerController extends Notifier<PlayerModel> {
   Duration? _savedResume;
   bool _resumeChecked = false;
 
-  /// When set, a saved position is seeked to silently instead of prompting —
-  /// the user already chose to continue by tapping a continue-watching card.
-  bool _autoResume = false;
+  /// What to do about a saved position on this open.
+  ResumeBehavior _behavior = ResumeBehavior.ask;
 
   /// The stored position this session opened from, if there was one. Guards
   /// that point against being erased before playback has caught up to it (see
@@ -123,17 +123,17 @@ class PlayerController extends Notifier<PlayerModel> {
   /// which is only reliable if the path itself is stable across opens.
   ///
   /// [title] is what the top bar shows; without one it is derived from [path],
-  /// which only reads well for real filesystem paths. [autoResume] jumps
-  /// straight to the saved position instead of showing the resume prompt.
+  /// which only reads well for real filesystem paths. [behavior] decides
+  /// whether a saved position is offered, used silently, or ignored.
   Future<void> open(
     String path, {
     String? mediaId,
     String? title,
-    bool autoResume = false,
+    ResumeBehavior behavior = ResumeBehavior.ask,
   }) async {
     if (_engine != null) return;
     _progressKey = mediaId ?? path;
-    _autoResume = autoResume;
+    _behavior = behavior;
     _progress = ref.read(progressRepositoryProvider);
 
     state = PlayerModel.initial(title ?? _titleFromPath(path));
@@ -176,9 +176,13 @@ class PlayerController extends Notifier<PlayerModel> {
     // known until the file is loaded. The payoff is that playback can *begin*
     // at the resume point (see [PlayerEngine.open]) instead of starting at
     // zero and seeking, which races the demuxer and visibly snaps back.
-    _openedAtResume = saved != null &&
+    // "Start over" ignores the saved point entirely: nothing to open at, and
+    // nothing to protect from being overwritten.
+    _openedAtResume = _behavior != ResumeBehavior.restart &&
+        saved != null &&
         saved.duration > Duration.zero &&
         _policy.shouldOffer(saved.position, saved.duration);
+    if (_behavior == ResumeBehavior.restart) _restoredFrom = null;
 
     // Single-player guard: dispose any engine still alive app-wide before
     // creating a new one, so two players can never play at once.
@@ -478,8 +482,8 @@ class PlayerController extends Notifier<PlayerModel> {
     // position; re-check against it before putting the choice to the viewer.
     if (!_policy.shouldOffer(saved, duration)) return;
 
-    // Continue Watching: the tap *was* the choice, so don't ask again.
-    if (_autoResume) return;
+    // The tap already answered the question; don't ask it again.
+    if (_behavior == ResumeBehavior.resume) return;
 
     // Hold here until the user chooses, auto-continuing if they don't.
     _engine?.pause();

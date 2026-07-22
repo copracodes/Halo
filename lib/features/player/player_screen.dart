@@ -6,6 +6,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import '../../core/theme/app_colors.dart';
 import 'player_controller.dart';
 import 'player_model.dart';
+import 'resume_behavior.dart';
 import 'widgets/gesture_hint_overlay.dart';
 import 'widgets/player_controls_overlay.dart';
 import 'widgets/player_error_view.dart';
@@ -21,7 +22,7 @@ class PlayerScreen extends ConsumerStatefulWidget {
     required this.path,
     this.mediaId,
     this.title,
-    this.autoResume = false,
+    this.behavior = ResumeBehavior.ask,
   });
 
   /// Where to read the video from: a filesystem path for ad-hoc picked files, or
@@ -36,9 +37,8 @@ class PlayerScreen extends ConsumerStatefulWidget {
   /// Title for the player's top bar. Falls back to the filename in [path].
   final String? title;
 
-  /// Skip the resume prompt and continue from the saved position — what a
-  /// Continue Watching card does.
-  final bool autoResume;
+  /// Whether a saved position is offered, used silently, or ignored.
+  final ResumeBehavior behavior;
 
   @override
   ConsumerState<PlayerScreen> createState() => _PlayerScreenState();
@@ -58,7 +58,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
             widget.path,
             mediaId: widget.mediaId,
             title: widget.title,
-            autoResume: widget.autoResume,
+            behavior: widget.behavior,
           );
     });
   }

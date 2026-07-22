@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:halo/data/database/app_database.dart';
 import 'package:halo/features/library/library_providers.dart';
+import 'package:halo/features/metadata/metadata_sync.dart';
 import 'package:halo/features/library/movies_tab.dart';
 import 'package:halo/features/library/widgets/poster_card.dart';
 
@@ -26,6 +27,11 @@ void main() {
         overrides: [
           moviesProvider.overrideWith((ref) => Stream.value(movies)),
           otherFilesProvider.overrideWith((ref) => Stream.value(other)),
+          // The grid now joins files to their metadata; without this the
+          // provider would reach a real on-disk database.
+          movieMetadataByKeyProvider.overrideWith(
+            (ref) => Stream.value(const {}),
+          ),
         ],
         child: const MaterialApp(home: Scaffold(body: MoviesTab())),
       ),
