@@ -1,6 +1,6 @@
-// The episode row's label. Release junk in a filename ("_720p", codec and
-// group tags) must not leak into the list — every other surface shows the
-// parsed identity, and this one has to match.
+// The episode row's labelling: the headline is the parsed identity (matching
+// every other surface), with the raw file name kept as a dim trailing line so
+// two rips of the same episode stay tellable apart.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,8 +34,38 @@ void main() {
       ),
     );
 
+    // The headline is the parsed identity, not the file name...
     expect(find.text('Episode 1'), findsOneWidget);
-    expect(find.textContaining('720p'), findsNothing);
+    // ...but the file name is still there, on its own line, for disambiguation.
+    expect(find.text('westworld-s2-E1_720p.mkv'), findsOneWidget);
+  });
+
+  testWidgets('two rips of one episode are distinguishable by their file names',
+      (tester) async {
+    MediaFile rip(String name) => mediaFile(
+          name,
+          mediaType: MediaType.episode,
+          parsedTitle: 'Westworld',
+          parsedSeason: 2,
+          parsedEpisode: 1,
+        );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              EpisodeTile(file: rip('westworld-s2-E1_720p.mkv'), onTap: () {}),
+              EpisodeTile(file: rip('westworld-s2-E1_1080p.mkv'), onTap: () {}),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Episode 1'), findsNWidgets(2));
+    expect(find.text('westworld-s2-E1_720p.mkv'), findsOneWidget);
+    expect(find.text('westworld-s2-E1_1080p.mkv'), findsOneWidget);
   });
 
   testWidgets('labels a multi-episode file with its range', (tester) async {

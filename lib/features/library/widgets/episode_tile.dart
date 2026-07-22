@@ -107,6 +107,21 @@ class EpisodeTile extends StatelessWidget {
                       ),
                     ),
                   ],
+                  // Two rips of the same episode are otherwise identical rows,
+                  // so the file name stays visible as the tie-breaker — dimmed
+                  // and last, since it's for disambiguating rather than
+                  // reading. Once TMDB episode names land this is the natural
+                  // thing to put behind a setting.
+                  const SizedBox(height: 2),
+                  Text(
+                    file.fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.textSecondary.withValues(alpha: 0.55),
+                      fontSize: 10,
+                    ),
+                  ),
                   if (progress != null) ...[
                     const SizedBox(height: 8),
                     _EpisodeProgress(progress: progress),
