@@ -65,6 +65,23 @@ class ProgressRepository {
         );
   }
 
+  /// Paths of files watched to the end, for "you've seen this" marks.
+  Stream<Set<String>> watchFinishedPaths() {
+    final query = _db.select(_db.watchProgress).join([
+      innerJoin(
+        _db.mediaFiles,
+        _db.mediaFiles.id.equalsExp(_db.watchProgress.mediaFileId),
+      ),
+    ])
+      ..where(_db.watchProgress.isFinished.equals(true));
+
+    return query.watch().map(
+          (rows) => {
+            for (final row in rows) row.readTable(_db.mediaFiles).filePath,
+          },
+        );
+  }
+
   /// Upserts the current playback position for [filePath]. Overwrites any prior
   /// row (unique per media file) and clears the finished flag, since the user is
   /// actively watching again.

@@ -5,8 +5,12 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'package:halo/data/database/app_database.dart';
+import 'package:halo/data/tmdb/tmdb_client.dart';
+import 'package:halo/data/tmdb/tmdb_providers.dart';
 import 'package:halo/features/home/home_screen.dart';
 import 'package:halo/features/library/library_providers.dart';
 
@@ -25,6 +29,19 @@ void main() {
             appDatabaseProvider.overrideWithValue(db),
             libraryFoldersProvider
                 .overrideWith((ref) => Stream.value(const <LibraryFolder>[])),
+            // The auto-scan now kicks off a metadata sync, and a real token is
+            // configured on a developer machine — without this the test would
+            // make live TMDB requests, which is both slow and flaky. Nothing
+            // here should ever touch the network.
+            tmdbClientProvider.overrideWith(
+              (ref) => TmdbClient(
+                token: 'test-token',
+                delay: (_) async {},
+                httpClient: MockClient(
+                  (request) async => http.Response('{}', 200),
+                ),
+              ),
+            ),
           ],
           child: const MaterialApp(home: HomeScreen()),
         ),

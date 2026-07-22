@@ -8,6 +8,8 @@ import '../library/manage_folders_screen.dart';
 import '../library/movies_tab.dart';
 import '../library/scan_controller.dart';
 import '../library/tv_shows_tab.dart';
+import '../metadata/metadata_sync_indicator.dart';
+import '../metadata/tmdb_debug_dialog.dart';
 import '../player/player_screen.dart';
 import 'home_tab.dart';
 import 'widgets/scan_banner.dart';
@@ -60,6 +62,16 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     );
   }
 
+  /// TEMPORARY (Phase 3.1): long-press the settings icon to run one live TMDB
+  /// search and see the raw response, confirming the token works on a real
+  /// device and network. Remove when 3.2 wires real enrichment.
+  void _openTmdbProbe() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const TmdbDebugDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scanning = ref.watch(scanControllerProvider.select((s) => s.scanning));
@@ -71,16 +83,30 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 1.5),
         ),
         actions: [
+          const MetadataSyncIndicator(),
           IconButton(
             icon: const Icon(Icons.video_file_outlined),
             tooltip: 'Open a file',
             onPressed: _openAdHocVideo,
           ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Manage folders',
-            onPressed: _openManageFolders,
+          // IconButton has no long-press, so the settings action is built from
+          // InkResponse to carry the temporary TMDB probe (Phase 3.1).
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Tooltip(
+              message: 'Manage folders',
+              child: InkResponse(
+                onTap: _openManageFolders,
+                onLongPress: _openTmdbProbe,
+                radius: 22,
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.settings_outlined),
+                ),
+              ),
+            ),
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(

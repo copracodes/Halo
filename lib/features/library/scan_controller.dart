@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/library_repository.dart';
+import '../metadata/metadata_sync.dart';
 import 'folder_access/saf_folder_access.dart';
 import 'library_providers.dart';
 
@@ -83,6 +86,11 @@ class ScanController extends Notifier<ScanState> {
     } finally {
       state = ScanState(scanning: false, filesFound: total);
     }
+
+    // Enrichment follows indexing: the scan decides *what* exists, the sync
+    // decides what it is. Deliberately not awaited — browsing must never wait
+    // on the network — and it skips itself silently when offline.
+    unawaited(ref.read(metadataSyncProvider.notifier).syncNow());
   }
 
   /// Re-runs the filename parser over existing rows (no disk rescan), refreshing

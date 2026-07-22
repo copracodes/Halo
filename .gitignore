@@ -33,6 +33,10 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Local secrets — copy lib/config/secrets.example.dart to secrets.dart and
+# paste your TMDB token there. Never commit the real token.
+/lib/config/secrets.dart
+
 # Symbolication related
 app.*.symbols
 

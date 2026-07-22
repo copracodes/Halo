@@ -55,6 +55,9 @@ Halo is a **mobile app**. Two target platforms, treated differently:
 - **shared_preferences** — **only** for trivial app settings/flags (e.g. the
   one-time resume-migration flag). Never the store of record for library or
   playback data; that all lives in drift.
+- **http** — TMDB REST calls (`data/tmdb/`). Always behind `TmdbClient`, which
+  returns a `TmdbResult` instead of throwing, so metadata failures can never
+  reach the UI as exceptions.
 - **Riverpod** (`flutter_riverpod`) — state management.
 - **saf_util** — Android Storage Access Framework: persistable folder grants +
   recursive listing. Always used behind the `FolderAccess` interface
@@ -80,9 +83,13 @@ lib/
 │   ├── player/               # media_kit playback surface + controller
 │   ├── library/              # scanner, folder_access/ (SAF), parser/ (pure Dart),
 │   │                         # Movies/TV tabs, show detail, widgets/ (cards, grids)
-│   └── metadata/             # TMDB service + metadata models
+│   └── metadata/             # TMDB attribution + (temporary) debug probe
+├── config/                   # app_secrets.dart, secrets.example.dart
+│                             # secrets.dart is git-ignored — see Secrets below
 └── data/
     ├── database/             # drift db (app_database.dart + .g.dart, schema v2)
+    ├── tmdb/                 # TmdbClient (transport), TmdbApi (endpoints),
+    │                         # models/, image URL building, TmdbResult
     └── repositories/         # LibraryRepository, ProgressRepository (features <-> db)
 ```
 
@@ -101,6 +108,34 @@ Placeholder files exist in each folder to establish the structure; most contain
   theme, if ever added, is a later polish concern. See `core/theme/`.
 - Depend inward: features → repositories → database. Widgets never touch the
   database directly.
+
+## Secrets / TMDB token
+
+The TMDB **v4 Read Access Token** lives in `lib/config/secrets.dart`, which is
+**git-ignored**. A fresh clone will not compile until it exists:
+
+```bash
+cp lib/config/secrets.example.dart lib/config/secrets.dart
+# then paste the token into tmdbReadAccessToken
+```
+
+Get the token from https://www.themoviedb.org/settings/api → **API Read Access
+Token** (the long `eyJ...` string, *not* the v3 API key). It is sent as
+`Authorization: Bearer <token>`; the credential never appears in a URL.
+
+A `--dart-define=TMDB_TOKEN=...` takes precedence over the file when supplied,
+for builds that shouldn't write the token to disk. Read both through
+`AppSecrets`, never `secrets.dart` directly.
+
+**An empty token is a supported state.** The app stays fully usable and TMDB
+calls return an `unauthorized` failure without hitting the network — metadata
+is an enhancement, never a prerequisite (see Project Vision).
+
+**TMDB attribution is required by their terms.** `TmdbAttribution` renders the
+"Metadata provided by TMDB" line on Manage Folders. The official logo must be
+downloaded from https://www.themoviedb.org/about/logos-attribution, saved to
+`assets/tmdb/tmdb_logo.png`, and declared in `pubspec.yaml`; never substitute a
+hand-made approximation of their mark.
 
 ## Build Phases
 

@@ -2,8 +2,10 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'match_status.dart';
 import 'media_type.dart';
 
+export 'match_status.dart' show MatchStatus, isAutoWritable;
 export 'media_type.dart' show MediaType;
 
 part 'app_database.g.dart';
@@ -59,7 +61,107 @@ class WatchProgress extends Table {
   BoolColumn get isFinished => boolean().withDefault(const Constant(false))();
 }
 
-@DriftDatabase(tables: [LibraryFolders, MediaFiles, WatchProgress])
+/// TMDB metadata for a movie, keyed by [movieKey] rather than by media file.
+///
+/// One record serves every file that parses to the same title and year, so a
+/// 720p and a 1080p rip of the same film share one poster, one overview, and
+/// one match decision — which is also what stops them looking like duplicates
+/// in the UI.
+class MovieMetadata extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Normalised `title|year` (see `metadata_keys.dart`). Unique.
+  TextColumn get movieKey => text().unique()();
+
+  IntColumn get tmdbId => integer().nullable()();
+  TextColumn get title => text().nullable()();
+  IntColumn get year => integer().nullable()();
+  TextColumn get overview => text().nullable()();
+
+  /// Runtime in milliseconds, matching how durations are stored elsewhere.
+  IntColumn get runtimeMs => integer().nullable()();
+
+  RealColumn get voteAverage => real().withDefault(const Constant(0))();
+
+  /// JSON array of genre names.
+  TextColumn get genres => text().nullable()();
+
+  /// TMDB-relative artwork paths (`/abc.jpg`), kept so a different size can be
+  /// re-derived later without searching again.
+  TextColumn get posterPath => text().nullable()();
+  TextColumn get backdropPath => text().nullable()();
+
+  /// Absolute on-device paths. The UI reads only these — never the network.
+  TextColumn get localPosterPath => text().nullable()();
+  TextColumn get localBackdropPath => text().nullable()();
+
+  /// 0–1 score from the matcher; 0 when nothing was accepted.
+  RealColumn get matchConfidence => real().withDefault(const Constant(0))();
+
+  IntColumn get matchStatus =>
+      intEnum<MatchStatus>().withDefault(Constant(MatchStatus.pending.index))();
+
+  DateTimeColumn get lastRefreshed => dateTime().nullable()();
+}
+
+/// TMDB metadata for a TV show, keyed by its normalised parsed title.
+class ShowMetadata extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Normalised show title — the same key `groupIntoShows` groups files by.
+  TextColumn get showKey => text().unique()();
+
+  IntColumn get tmdbId => integer().nullable()();
+  TextColumn get name => text().nullable()();
+  IntColumn get firstAirYear => integer().nullable()();
+  TextColumn get overview => text().nullable()();
+  TextColumn get genres => text().nullable()();
+  TextColumn get posterPath => text().nullable()();
+  TextColumn get backdropPath => text().nullable()();
+  TextColumn get localPosterPath => text().nullable()();
+  TextColumn get localBackdropPath => text().nullable()();
+  RealColumn get matchConfidence => real().withDefault(const Constant(0))();
+
+  IntColumn get matchStatus =>
+      intEnum<MatchStatus>().withDefault(Constant(MatchStatus.pending.index))();
+
+  DateTimeColumn get lastRefreshed => dateTime().nullable()();
+}
+
+/// One episode's metadata, keyed by show + season + episode.
+///
+/// Keyed on [showTmdbId] rather than a row id so it survives a show being
+/// re-matched, and so a season can be fetched independently of the show record.
+class EpisodeMetadata extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get showTmdbId => integer()();
+  IntColumn get season => integer()();
+  IntColumn get episode => integer()();
+  TextColumn get name => text().nullable()();
+  TextColumn get overview => text().nullable()();
+  DateTimeColumn get airDate => dateTime().nullable()();
+  TextColumn get stillPath => text().nullable()();
+  TextColumn get localStillPath => text().nullable()();
+  IntColumn get runtimeMs => integer().nullable()();
+  DateTimeColumn get lastRefreshed => dateTime().nullable()();
+
+  /// One row per episode of a show.
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {showTmdbId, season, episode},
+      ];
+}
+
+@DriftDatabase(
+  tables: [
+    LibraryFolders,
+    MediaFiles,
+    WatchProgress,
+    MovieMetadata,
+    ShowMetadata,
+    EpisodeMetadata,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   /// Opens the on-device database (Android/iOS). [executor] is injected by
   /// tests with an in-memory database.
@@ -67,7 +169,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'halo'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +177,14 @@ class AppDatabase extends _$AppDatabase {
           // v2 adds the multi-episode end column to existing installs.
           if (from < 2) {
             await m.addColumn(mediaFiles, mediaFiles.parsedEpisodeEnd);
+          }
+          // v3 adds the TMDB metadata tables (Phase 3.2). Purely additive —
+          // an existing library keeps its files and progress untouched and
+          // simply arrives with nothing matched yet.
+          if (from < 3) {
+            await m.createTable(movieMetadata);
+            await m.createTable(showMetadata);
+            await m.createTable(episodeMetadata);
           }
         },
         beforeOpen: (details) async {
