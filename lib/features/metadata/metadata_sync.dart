@@ -28,6 +28,10 @@ enum SyncOutcome {
   /// No TMDB token configured.
   notConfigured,
 
+  /// A token is set but TMDB rejected it (invalid or expired). Surfaced once so
+  /// the user can fix their configuration; the pass stops rather than retrying.
+  tokenRejected,
+
   /// Stopped early by [MetadataSyncController.cancel] or provider disposal.
   cancelled;
 
@@ -44,6 +48,9 @@ enum SyncOutcome {
           'No connection — metadata will sync next time you’re online.',
         SyncOutcome.notConfigured =>
           'No TMDB token configured, so metadata is unavailable.',
+        SyncOutcome.tokenRejected =>
+          'Your TMDB token was rejected — it may be invalid or expired. '
+              'Update it to fetch metadata.',
         SyncOutcome.cancelled => 'Sync stopped.',
       };
 }
@@ -148,14 +155,21 @@ class MetadataSyncController extends Notifier<MetadataSyncState> {
         return;
       }
 
-      // One probe before doing anything: if the device is offline, stop now
-      // rather than failing item by item.
+      // One probe before doing anything: if the device is offline, or the token
+      // is rejected, stop now rather than failing item by item. `/configuration`
+      // needs auth, so it's the single choke point that catches a bad token
+      // before a whole library's worth of requests do — no crash loop.
       final configuration = await api.loadConfiguration();
-      if (configuration case TmdbFailure(:final kind)
-          when kind == TmdbFailureKind.networkUnavailable ||
-              kind == TmdbFailureKind.timeout) {
-        _finish(SyncOutcome.skippedOffline);
-        return;
+      if (configuration case TmdbFailure(:final kind)) {
+        if (kind == TmdbFailureKind.networkUnavailable ||
+            kind == TmdbFailureKind.timeout) {
+          _finish(SyncOutcome.skippedOffline);
+          return;
+        }
+        if (kind == TmdbFailureKind.unauthorized) {
+          _finish(SyncOutcome.tokenRejected);
+          return;
+        }
       }
 
       state = state.copyWith(total: movies.length + shows.length);
@@ -250,7 +264,8 @@ class MetadataSyncController extends Notifier<MetadataSyncState> {
         parsedTitle: source.title,
         parsedYear: source.year,
       );
-      if (outcome == MatchOutcome.offline) return SyncOutcome.skippedOffline;
+      final terminal = _terminalFor(outcome);
+      if (terminal != null) return terminal;
       _advance();
     }
 
@@ -260,11 +275,23 @@ class MetadataSyncController extends Notifier<MetadataSyncState> {
       if (title == null) continue;
 
       final outcome = await matcher.matchShow(show.showKey, parsedTitle: title);
-      if (outcome == MatchOutcome.offline) return SyncOutcome.skippedOffline;
+      final terminal = _terminalFor(outcome);
+      if (terminal != null) return terminal;
       _advance();
     }
 
     return null;
+  }
+
+  /// Maps a per-item outcome that must stop the whole pass to its sync outcome,
+  /// or null to keep going. Offline and a rejected token are pass-wide: every
+  /// remaining item would hit the same wall.
+  static SyncOutcome? _terminalFor(MatchOutcome outcome) {
+    return switch (outcome) {
+      MatchOutcome.offline => SyncOutcome.skippedOffline,
+      MatchOutcome.unauthorized => SyncOutcome.tokenRejected,
+      _ => null,
+    };
   }
 
   /// Fetches episode data for the seasons present on disk, and only those.
@@ -290,7 +317,8 @@ class MetadataSyncController extends Notifier<MetadataSyncState> {
       for (final season in seasons.difference(stored)) {
         if (_cancelled) return SyncOutcome.cancelled;
         final outcome = await matcher.fetchSeason(tmdbId, season);
-        if (outcome == MatchOutcome.offline) return SyncOutcome.skippedOffline;
+        final terminal = _terminalFor(outcome);
+        if (terminal != null) return terminal;
       }
     }
 

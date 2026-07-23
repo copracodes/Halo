@@ -4,11 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/format_utils.dart';
 import '../../data/database/app_database.dart';
+import '../../data/repositories/library_repository.dart';
 import '../../data/repositories/metadata_repository.dart';
+import '../metadata/fix_match_flow.dart';
 import '../metadata/metadata_providers.dart';
 import '../player/play_media.dart';
 import '../player/resume_behavior.dart';
 import 'library_providers.dart';
+import 'media_display.dart';
 import 'movie_grouping.dart';
 import 'quality_label.dart';
 import 'widgets/backdrop_header.dart';
@@ -82,6 +85,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
                   title: entry.title,
                   heroTag: widget.heroTag,
                   facts: _facts(entry),
+                  actions: _menu(entry, file),
                 ),
               ),
               SliverToBoxAdapter(
@@ -109,6 +113,84 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
     );
   }
 
+  /// The overflow menu shown over the backdrop: correct a wrong match, refresh
+  /// it, or hide the file as "not a movie".
+  Widget _menu(MovieEntry entry, MediaFile file) {
+    final isMatched = entry.metadata?.tmdbId != null;
+    final hasVersions = entry.hasVersions;
+
+    return PopupMenuButton<_MovieAction>(
+      icon: const Icon(Icons.more_vert, color: Colors.white),
+      tooltip: 'More',
+      onSelected: (action) => _onAction(action, entry, file),
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: _MovieAction.fixMatch,
+          child: _MenuRow(icon: Icons.search, label: 'Fix match'),
+        ),
+        if (isMatched)
+          const PopupMenuItem(
+            value: _MovieAction.refresh,
+            child: _MenuRow(icon: Icons.refresh, label: 'Refresh metadata'),
+          ),
+        PopupMenuItem(
+          value: _MovieAction.hide,
+          child: _MenuRow(
+            icon: Icons.visibility_off_outlined,
+            label: hasVersions ? 'Hide this version' : 'Not a movie — hide',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _onAction(
+    _MovieAction action,
+    MovieEntry entry,
+    MediaFile file,
+  ) async {
+    switch (action) {
+      case _MovieAction.fixMatch:
+        await runFixMatch(
+          context,
+          ref,
+          matchKey: entry.movieKey,
+          parsedTitle: file.displayTitle,
+          isMovie: true,
+        );
+      case _MovieAction.refresh:
+        await runRefreshMetadata(
+          context,
+          ref,
+          matchKey: entry.movieKey,
+          isMovie: true,
+        );
+      case _MovieAction.hide:
+        await _hide(entry, file);
+    }
+  }
+
+  /// Hides [file] from the library. When it was the film's only file the whole
+  /// entry vanishes, so the screen pops back rather than showing an empty shell.
+  Future<void> _hide(MovieEntry entry, MediaFile file) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final wasLast = entry.files.length <= 1;
+
+    await ref.read(libraryRepositoryProvider).setHidden(file.id, true);
+    if (!mounted) return;
+
+    if (wasLast) navigator.pop();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Hid “${file.fileName}”. Restore it from Settings › Hidden files.',
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   /// The short facts line under the title: year, runtime, rating, genres.
   List<String> _facts(MovieEntry entry) {
     final genres = decodeGenres(entry.metadata?.genres);
@@ -118,6 +200,28 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen> {
       if (entry.voteAverage > 0) '★ ${entry.voteAverage.toStringAsFixed(1)}',
       if (genres.isNotEmpty) genres.take(3).join(', '),
     ];
+  }
+}
+
+/// Actions in the detail overflow menu.
+enum _MovieAction { fixMatch, refresh, hide }
+
+/// An icon-and-label row for a popup menu item, matching the dark theme.
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppColors.textSecondary),
+        const SizedBox(width: 12),
+        Text(label, style: const TextStyle(color: AppColors.textPrimary)),
+      ],
+    );
   }
 }
 

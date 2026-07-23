@@ -152,6 +152,89 @@ final genreRowsProvider = Provider<List<({String genre, List<MovieEntry> movies}
   },
 );
 
+/// One library title the matcher couldn't confidently place — either it scored
+/// too low ([MatchStatus.needsReview]) or TMDB returned nothing
+/// ([MatchStatus.unmatched]). Surfaced in the Needs review list so the user can
+/// search-and-pick the right entry rather than living with a wrong guess.
+class ReviewItem {
+  const ReviewItem({
+    required this.matchKey,
+    required this.title,
+    required this.isMovie,
+    required this.status,
+    this.guessTitle,
+    this.guessYear,
+    this.confidence = 0,
+  });
+
+  /// The movie or show key to apply a correction against.
+  final String matchKey;
+
+  /// The parsed title read from disk — what the correction search starts from.
+  final String title;
+
+  final bool isMovie;
+  final MatchStatus status;
+
+  /// The best low-confidence guess the matcher kept, when there was one.
+  final String? guessTitle;
+  final int? guessYear;
+  final double confidence;
+
+  /// A short line explaining why this needs a look.
+  String get reason {
+    if (status == MatchStatus.unmatched) return 'No match found';
+    final guess = guessTitle;
+    final percent = (confidence * 100).round();
+    if (guess == null || guess.isEmpty) return 'Low-confidence match';
+    final year = guessYear == null ? '' : ' (${guessYear!})';
+    return 'Maybe: $guess$year · $percent%';
+  }
+}
+
+bool _needsReview(MatchStatus status) =>
+    status == MatchStatus.needsReview || status == MatchStatus.unmatched;
+
+/// Every library title currently needing review, movies and shows together.
+/// Kept in sync with the library and metadata streams, so a correction (or a
+/// later successful sync) drops the item off the list the moment it lands.
+final reviewItemsProvider = Provider<List<ReviewItem>>((ref) {
+  final movies = ref.watch(movieEntriesProvider).value ?? const <MovieEntry>[];
+  final shows = ref.watch(showEntriesProvider).value ?? const <ShowEntry>[];
+
+  final items = <ReviewItem>[
+    for (final entry in movies)
+      if (entry.metadata case final meta? when _needsReview(meta.matchStatus))
+        ReviewItem(
+          matchKey: entry.movieKey,
+          title: entry.primaryFile.displayTitle,
+          isMovie: true,
+          status: meta.matchStatus,
+          guessTitle: meta.title,
+          guessYear: meta.year,
+          confidence: meta.matchConfidence,
+        ),
+    for (final entry in shows)
+      if (entry.metadata case final meta? when _needsReview(meta.matchStatus))
+        ReviewItem(
+          matchKey: showKeyFor(entry.show.title),
+          title: entry.show.title,
+          isMovie: false,
+          status: meta.matchStatus,
+          guessTitle: meta.name,
+          guessYear: meta.firstAirYear,
+          confidence: meta.matchConfidence,
+        ),
+  ]..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+
+  return items;
+});
+
+/// How many titles need review — the badge on the settings icon.
+final reviewCountProvider = Provider<int>((ref) {
+  return ref.watch(reviewItemsProvider).length;
+});
+
 /// The poster to show for an arbitrary library file — used by rows that mix
 /// movies and episodes, like Continue Watching and Recently Added.
 String? artworkPathForFile(

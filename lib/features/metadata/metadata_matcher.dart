@@ -17,6 +17,11 @@ enum MatchOutcome {
   /// next time rather than marking everything unmatched.
   offline,
 
+  /// The token was rejected (invalid or expired). The orchestrator stops the
+  /// whole pass — every remaining item would fail identically — so the error is
+  /// surfaced once instead of as a crash loop of per-item failures.
+  unauthorized,
+
   /// A non-network failure for this one item; move on to the next.
   failed,
 }
@@ -232,13 +237,14 @@ class MetadataMatcher {
     }
   }
 
-  /// A missing network stops the whole pass; anything else is this item's
-  /// problem alone.
+  /// A missing network or a rejected token stops the whole pass; anything else
+  /// is this item's problem alone.
   static MatchOutcome _outcomeForFailure(TmdbFailureKind kind) {
     return switch (kind) {
       TmdbFailureKind.networkUnavailable ||
       TmdbFailureKind.timeout =>
         MatchOutcome.offline,
+      TmdbFailureKind.unauthorized => MatchOutcome.unauthorized,
       _ => MatchOutcome.failed,
     };
   }

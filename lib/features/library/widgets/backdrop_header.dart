@@ -18,6 +18,7 @@ class BackdropHeader extends StatelessWidget {
     this.posterPath,
     this.facts = const [],
     this.heroTag,
+    this.actions,
   });
 
   /// Local backdrop file.
@@ -33,6 +34,10 @@ class BackdropHeader extends StatelessWidget {
 
   /// Tag of the card that opened this screen, so its poster flies in.
   final Object? heroTag;
+
+  /// Optional trailing action, shown top-right opposite the back button — the
+  /// detail screens hang their overflow menu here.
+  final Widget? actions;
 
   static const double _backdropHeight = 240;
 
@@ -105,6 +110,12 @@ class BackdropHeader extends StatelessWidget {
               ),
             ),
           ),
+          if (actions != null)
+            Positioned(
+              right: 4,
+              top: 4,
+              child: SafeArea(child: actions!),
+            ),
           Positioned(
             left: 16,
             right: 16,

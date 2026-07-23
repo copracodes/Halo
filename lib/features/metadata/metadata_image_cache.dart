@@ -55,8 +55,10 @@ class MetadataImageCache {
     }
 
     final file = File('${directory.path}/${fileNameFor(url)}');
-    // Already downloaded: the common case on every sync after the first.
-    if (file.existsSync() && await file.length() > 0) return file.path;
+    // Already downloaded: the common case on every sync after the first. The
+    // check is async so a sync walking a large library never blocks the UI
+    // isolate on synchronous stat calls — playback stays smooth while it runs.
+    if (await file.exists() && await file.length() > 0) return file.path;
 
     try {
       final response = await _http
@@ -96,7 +98,34 @@ class MetadataImageCache {
     return sanitized.isEmpty ? 'image.jpg' : sanitized;
   }
 
-  /// Deletes every cached image. Artwork is regenerable, so this is safe.
+  /// Total bytes currently on disk, for the storage figure in settings. A
+  /// missing directory (nothing cached yet, or just cleared) reads as zero.
+  Future<int> currentSizeBytes() async {
+    final Directory directory;
+    try {
+      directory = await _resolveDirectory();
+    } on Object {
+      return 0;
+    }
+    if (!await directory.exists()) return 0;
+
+    var total = 0;
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is File) {
+        try {
+          total += await entity.length();
+        } on Object {
+          // A file vanishing mid-walk (a concurrent clear) just doesn't count.
+        }
+      }
+    }
+    return total;
+  }
+
+  /// Deletes every cached image. Artwork is regenerable, so this is safe — but
+  /// callers must also forget the stored local paths
+  /// (`MetadataRepository.clearAllLocalImagePaths`) or the UI will keep pointing
+  /// at files that no longer exist and the sync won't know to re-fetch them.
   Future<void> clear() async {
     final directory = await _resolveDirectory();
     if (directory.existsSync()) await directory.delete(recursive: true);

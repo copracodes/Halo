@@ -8,6 +8,7 @@ import '../library/manage_folders_screen.dart';
 import '../library/movies_tab.dart';
 import '../library/scan_controller.dart';
 import '../library/tv_shows_tab.dart';
+import '../metadata/metadata_providers.dart';
 import '../metadata/metadata_sync_indicator.dart';
 import '../metadata/tmdb_debug_dialog.dart';
 import '../player/player_screen.dart';
@@ -75,6 +76,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final scanning = ref.watch(scanControllerProvider.select((s) => s.scanning));
+    final reviewCount = ref.watch(reviewCountProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -94,14 +96,20 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Tooltip(
-              message: 'Manage folders',
+              message: 'Settings',
               child: InkResponse(
                 onTap: _openManageFolders,
                 onLongPress: _openTmdbProbe,
                 radius: 22,
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(Icons.settings_outlined),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  // Badge draws attention to titles the matcher wasn't sure
+                  // about, which is where the user's manual attention is wanted.
+                  child: Badge.count(
+                    count: reviewCount,
+                    isLabelVisible: reviewCount > 0,
+                    child: const Icon(Icons.settings_outlined),
+                  ),
                 ),
               ),
             ),

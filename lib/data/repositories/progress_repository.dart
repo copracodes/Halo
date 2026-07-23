@@ -42,7 +42,9 @@ class ProgressRepository {
   /// Reactive continue-watching feed: every started-but-unfinished file, joined
   /// to its media row, most recently watched first. Rows with no known duration
   /// are skipped — they can't be shown as a progress bar and were most likely
-  /// written by [markFinished] before a duration was ever observed.
+  /// written by [markFinished] before a duration was ever observed. Hidden files
+  /// are skipped too, so marking something "not a movie" removes it from
+  /// continue-watching as well as the grids.
   Stream<List<MediaWithProgress>> watchInProgress() {
     final query = _db.select(_db.watchProgress).join([
       innerJoin(
@@ -51,7 +53,8 @@ class ProgressRepository {
       ),
     ])
       ..where(_db.watchProgress.isFinished.equals(false) &
-          _db.watchProgress.durationMs.isBiggerThanValue(0))
+          _db.watchProgress.durationMs.isBiggerThanValue(0) &
+          _db.mediaFiles.hidden.equals(false))
       ..orderBy([OrderingTerm.desc(_db.watchProgress.lastWatchedAt)]);
 
     return query.watch().map(

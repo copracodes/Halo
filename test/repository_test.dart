@@ -73,6 +73,68 @@ void main() {
       expect(media.folderId, folderId);
     });
 
+    test('hidden files drop out of the grids but stay restorable', () async {
+      final folderId = await library.addFolder(
+        path: 'content://tree/movies',
+        displayName: 'Movies',
+      );
+      await library.upsertMediaFile(
+        folderId: folderId,
+        filePath: '/movies/dune.mkv',
+        fileName: 'dune.mkv',
+        mediaType: MediaType.movie,
+      );
+      await library.upsertMediaFile(
+        folderId: folderId,
+        filePath: '/movies/sample.mkv',
+        fileName: 'sample.mkv',
+        mediaType: MediaType.movie,
+      );
+
+      final sample = await library.mediaByPath('/movies/sample.mkv');
+      await library.setHidden(sample!.id, true);
+
+      final visible = await library.watchMediaOfType(MediaType.movie).first;
+      expect(visible.map((f) => f.fileName), ['dune.mkv'],
+          reason: 'the hidden sample is gone from the grid');
+
+      final hidden = await library.watchHiddenMedia().first;
+      expect(hidden.map((f) => f.fileName), ['sample.mkv'],
+          reason: 'but it is listed for restoring');
+
+      await library.setHidden(sample.id, false);
+      final restored = await library.watchMediaOfType(MediaType.movie).first;
+      expect(restored.map((f) => f.fileName).toSet(),
+          {'dune.mkv', 'sample.mkv'});
+      expect(await library.watchHiddenMedia().first, isEmpty);
+    });
+
+    test('a hidden file is excluded from continue-watching', () async {
+      final folderId = await library.addFolder(
+        path: 'content://tree/movies',
+        displayName: 'Movies',
+      );
+      await library.upsertMediaFile(
+        folderId: folderId,
+        filePath: '/movies/trailer.mkv',
+        fileName: 'trailer.mkv',
+        mediaType: MediaType.movie,
+      );
+      await progress.savePosition(
+        '/movies/trailer.mkv',
+        position: const Duration(minutes: 1),
+        duration: const Duration(minutes: 3),
+      );
+
+      expect(await progress.watchInProgress().first, hasLength(1));
+
+      final file = await library.mediaByPath('/movies/trailer.mkv');
+      await library.setHidden(file!.id, true);
+
+      expect(await progress.watchInProgress().first, isEmpty,
+          reason: 'hiding a file removes it from continue-watching too');
+    });
+
     test('removing a folder cascades to its media and progress', () async {
       final folderId = await library.addFolder(
         path: 'content://tree/movies',

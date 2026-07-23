@@ -20,6 +20,7 @@ class EpisodeTile extends StatelessWidget {
     super.key,
     required this.file,
     required this.onTap,
+    this.onLongPress,
     this.metadata,
     this.progress,
     this.watched = false,
@@ -27,6 +28,9 @@ class EpisodeTile extends StatelessWidget {
 
   final MediaFile file;
   final VoidCallback onTap;
+
+  /// Optional long-press action — the show detail uses it to hide a junk file.
+  final VoidCallback? onLongPress;
 
   /// TMDB's record for this episode, when the show is matched.
   final EpisodeMetadataData? metadata;
@@ -82,6 +86,7 @@ class EpisodeTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(

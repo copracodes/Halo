@@ -4,9 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/database/app_database.dart';
 import '../../data/repositories/library_repository.dart';
+import '../metadata/metadata_maintenance.dart';
+import '../metadata/metadata_providers.dart';
 import '../metadata/metadata_sync.dart';
+import '../metadata/needs_review_screen.dart';
 import '../metadata/tmdb_attribution.dart';
+import 'hidden_files_screen.dart';
 import 'library_providers.dart';
+import 'quality_label.dart';
 import 'scan_controller.dart';
 
 /// Lets the user add, scan, and remove the folders Halo indexes.
@@ -22,15 +27,57 @@ class ManageFoldersScreen extends ConsumerWidget {
   /// pushed screen — so from here it is invisible, and a fast no-op sync used
   /// to look exactly like a dead button. The outcome is stated explicitly
   /// instead.
+  ///
+  /// Deliberately does *not* retry already-failed titles: a film TMDB returned
+  /// nothing for lands in Needs review and stays there until the user corrects
+  /// it by hand or its parsed title changes — re-querying hopeless titles on
+  /// every sync is exactly the infinite-retry this phase set out to avoid.
   Future<void> _syncMetadata(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
-    await ref.read(metadataSyncProvider.notifier).syncNow(retryFailed: true);
+    await ref.read(metadataSyncProvider.notifier).syncNow();
     final outcome = ref.read(metadataSyncProvider).outcome;
 
     messenger.showSnackBar(
       SnackBar(
         content: Text(outcome.message),
         duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// Deletes cached artwork after confirming, and refreshes the size figure.
+  /// Metadata is untouched; images re-download on the next sync.
+  Future<void> _clearImageCache(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear image cache?'),
+        content: const Text(
+          'Cached posters and backdrops will be deleted to free up space. Your '
+          'matches and details are kept — artwork re-downloads on the next '
+          'metadata sync.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (!(confirmed ?? false) || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    await ref.read(metadataMaintenanceProvider).clearImageCache();
+    ref.invalidate(imageCacheSizeProvider);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Image cache cleared. Artwork re-downloads on next sync.'),
+        duration: Duration(seconds: 3),
       ),
     );
   }
@@ -62,6 +109,11 @@ class ManageFoldersScreen extends ConsumerWidget {
     );
     if (confirmed ?? false) {
       await ref.read(libraryRepositoryProvider).removeFolder(folder.id);
+      // The folder's files cascade away by foreign key, but their TMDB records
+      // are keyed by title, not folder — so prune whatever is now orphaned.
+      // Cached image files are left in place (content-addressed and shared), so
+      // re-adding the same folder re-links without re-downloading a thing.
+      await ref.read(metadataMaintenanceProvider).pruneOrphans();
     }
   }
 
@@ -71,9 +123,12 @@ class ManageFoldersScreen extends ConsumerWidget {
     final scan = ref.watch(scanControllerProvider);
     final syncing = ref.watch(metadataSyncProvider.select((s) => s.running));
 
+    final reviewCount = ref.watch(reviewCountProvider);
+    final hiddenCount = ref.watch(hiddenMediaProvider).value?.length ?? 0;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage folders'),
+        title: const Text('Settings'),
         actions: [
           TextButton(
             onPressed: scan.scanning
@@ -106,6 +161,45 @@ class ManageFoldersScreen extends ConsumerWidget {
         children: [
           if (scan.scanning) _ScanBanner(scan: scan),
           if (syncing) const _SyncBanner(),
+          _SettingsEntry(
+            icon: Icons.rule,
+            title: 'Needs review',
+            subtitle: reviewCount == 0
+                ? 'Everything matched'
+                : '$reviewCount ${reviewCount == 1 ? 'title needs' : 'titles need'} a look',
+            count: reviewCount,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const NeedsReviewScreen()),
+            ),
+          ),
+          _SettingsEntry(
+            icon: Icons.visibility_off_outlined,
+            title: 'Hidden files',
+            subtitle: hiddenCount == 0
+                ? 'Nothing hidden'
+                : '$hiddenCount ${hiddenCount == 1 ? 'file' : 'files'} hidden',
+            count: hiddenCount,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const HiddenFilesScreen()),
+            ),
+          ),
+          _ImageCacheEntry(onClear: () => _clearImageCache(context, ref)),
+          const Divider(height: 1),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'FOLDERS',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          ),
           Expanded(
             child: foldersAsync.when(
               loading: () => const Center(
@@ -149,6 +243,98 @@ class ManageFoldersScreen extends ConsumerWidget {
           const TmdbAttribution(),
         ],
       ),
+    );
+  }
+}
+
+/// The image-cache storage row: shows how much artwork is on disk and offers a
+/// clear action. Only the sizes the app renders are ever cached, so this figure
+/// is the whole of Halo's artwork footprint.
+class _ImageCacheEntry extends ConsumerWidget {
+  const _ImageCacheEntry({required this.onClear});
+
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sizeAsync = ref.watch(imageCacheSizeProvider);
+    final bytes = sizeAsync.value ?? 0;
+    final subtitle = switch (sizeAsync) {
+      AsyncData() => bytes == 0
+          ? 'No artwork cached'
+          : '${formatFileSize(bytes)} of cached artwork',
+      AsyncError() => 'Cached artwork',
+      _ => 'Measuring…',
+    };
+
+    return ListTile(
+      leading: const Icon(Icons.image_outlined, color: AppColors.accent),
+      title: const Text(
+        'Image cache',
+        style: TextStyle(color: AppColors.textPrimary),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(color: AppColors.textSecondary),
+      ),
+      trailing: TextButton(
+        onPressed: bytes == 0 ? null : onClear,
+        child: const Text('Clear'),
+      ),
+    );
+  }
+}
+
+/// A navigable settings row with an optional count badge (Needs review, Hidden
+/// files).
+class _SettingsEntry extends StatelessWidget {
+  const _SettingsEntry({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.count,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.accent),
+      title: Text(title, style: const TextStyle(color: AppColors.textPrimary)),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(color: AppColors.textSecondary),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (count > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.accent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          const SizedBox(width: 4),
+          const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        ],
+      ),
+      onTap: onTap,
     );
   }
 }

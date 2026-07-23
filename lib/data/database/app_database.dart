@@ -45,6 +45,12 @@ class MediaFiles extends Table {
   /// episodes.
   IntColumn get parsedEpisodeEnd => integer().nullable()();
   IntColumn get durationMs => integer().nullable()();
+
+  /// Hidden from the library UI without leaving the database. Set when the user
+  /// marks a file "not a movie" (a sample clip, a trailer) so it stops cluttering
+  /// the grids, matching, and continue-watching — but stays restorable from the
+  /// Hidden files list in settings. Excluded everywhere the UI reads media.
+  BoolColumn get hidden => boolean().withDefault(const Constant(false))();
 }
 
 /// Resume / continue-watching state, one row per media file. This is the single
@@ -169,7 +175,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'halo'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -185,6 +191,11 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(movieMetadata);
             await m.createTable(showMetadata);
             await m.createTable(episodeMetadata);
+          }
+          // v4 adds the per-file "hidden" flag (Phase 3.4). Additive and
+          // defaulted to false, so an existing library keeps every file visible.
+          if (from < 4) {
+            await m.addColumn(mediaFiles, mediaFiles.hidden);
           }
         },
         beforeOpen: (details) async {

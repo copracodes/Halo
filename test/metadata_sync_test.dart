@@ -43,6 +43,16 @@ TmdbApi apiFrom(
   return TmdbApi(client);
 }
 
+/// A TMDB whose every request is rejected with 401 — a bad or expired token.
+TmdbApi apiRejectingToken() {
+  final client = TmdbClient(
+    token: 'stale-token',
+    delay: (_) async {},
+    httpClient: MockClient((_) async => http.Response('{}', 401)),
+  );
+  return TmdbApi(client);
+}
+
 const _duneSearch = {
   'results': [
     {
@@ -230,6 +240,56 @@ void main() {
       final record = await metadata.movieByKey(key);
       expect(record!.tmdbId, 999, reason: 'a human decision outranks the scorer');
       expect(record.matchStatus, MatchStatus.manual);
+    });
+  });
+
+  group('failure modes', () {
+    test('a rejected token reports unauthorized, not a per-item failure',
+        () async {
+      final key = movieKeyFor('Dune', 2021);
+      await metadata.ensureMoviePending(key);
+
+      final matcher = MetadataMatcher(apiRejectingToken(), metadata);
+      final outcome =
+          await matcher.matchMovie(key, parsedTitle: 'Dune', parsedYear: 2021);
+
+      // The sync maps this to a single "token rejected" message and stops,
+      // rather than looping the whole library into failures.
+      expect(outcome, MatchOutcome.unauthorized);
+      expect((await metadata.movieByKey(key))!.matchStatus, MatchStatus.pending,
+          reason: 'a bad token must not corrupt the queue');
+    });
+
+    test('TMDB dropping mid-pass saves what completed and resumes cleanly',
+        () async {
+      final duneKey = movieKeyFor('Dune', 2021);
+      final arrivalKey = movieKeyFor('Arrival', 2016);
+      await metadata.ensureMoviePending(duneKey);
+      await metadata.ensureMoviePending(arrivalKey);
+
+      // First pass: Dune matches, then the network drops before Arrival.
+      final onlineForDune = MetadataMatcher(
+        apiFrom({'search/movie': _duneSearch, 'movie/438631': _duneDetails}),
+        metadata,
+      );
+      expect(
+        await onlineForDune.matchMovie(duneKey,
+            parsedTitle: 'Dune', parsedYear: 2021),
+        MatchOutcome.matched,
+      );
+      final offline = MetadataMatcher(apiFrom(const {}, offline: true), metadata);
+      expect(
+        await offline.matchMovie(arrivalKey,
+            parsedTitle: 'Arrival', parsedYear: 2016),
+        MatchOutcome.offline,
+      );
+
+      // Dune's result is durable; Arrival is still queued, not failed.
+      expect((await metadata.movieByKey(duneKey))!.matchStatus, MatchStatus.auto);
+      expect((await metadata.movieByKey(arrivalKey))!.matchStatus,
+          MatchStatus.pending);
+      expect((await metadata.moviesNeedingMatch()).map((m) => m.movieKey),
+          [arrivalKey], reason: 'the next sync picks up exactly where it left off');
     });
   });
 

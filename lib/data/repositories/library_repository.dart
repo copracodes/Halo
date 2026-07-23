@@ -59,12 +59,34 @@ class LibraryRepository {
   /// Reactive list of indexed library files of one [MediaType] — the movies
   /// grid, the episode pool the TV grid groups into shows, and the unclassified
   /// leftovers each watch one of these. Ad-hoc opened files (null folder) are
-  /// excluded: the library shows what was scanned.
+  /// excluded: the library shows what was scanned. Files the user hid ("not a
+  /// movie") are excluded too — they drop out of the grids, matching, and every
+  /// derived view at once, and only reappear in the Hidden files list.
   Stream<List<MediaFile>> watchMediaOfType(MediaType type) {
     return (_db.select(_db.mediaFiles)
-          ..where((f) => f.folderId.isNotNull() & f.mediaType.equalsValue(type))
+          ..where((f) =>
+              f.folderId.isNotNull() &
+              f.mediaType.equalsValue(type) &
+              f.hidden.equals(false))
           ..orderBy([(f) => OrderingTerm.asc(f.fileName)]))
         .watch();
+  }
+
+  /// Reactive list of hidden files, for the Hidden files list in settings where
+  /// the user can restore them. Newest scan first.
+  Stream<List<MediaFile>> watchHiddenMedia() {
+    return (_db.select(_db.mediaFiles)
+          ..where((f) => f.hidden.equals(true))
+          ..orderBy([(f) => OrderingTerm.desc(f.dateScanned)]))
+        .watch();
+  }
+
+  /// Hides or restores a single media file. Hidden files stay in the database
+  /// (their playback progress and metadata are untouched) but disappear from
+  /// every library view until restored.
+  Future<void> setHidden(int id, bool hidden) {
+    return (_db.update(_db.mediaFiles)..where((f) => f.id.equals(id)))
+        .write(MediaFilesCompanion(hidden: Value(hidden)));
   }
 
   /// The most recently indexed library files, newest first.
@@ -73,7 +95,7 @@ class LibraryRepository {
   /// rescanned".
   Stream<List<MediaFile>> watchRecentlyAdded({int limit = 20}) {
     return (_db.select(_db.mediaFiles)
-          ..where((f) => f.folderId.isNotNull())
+          ..where((f) => f.folderId.isNotNull() & f.hidden.equals(false))
           ..orderBy([(f) => OrderingTerm.desc(f.dateScanned)])
           ..limit(limit))
         .watch();

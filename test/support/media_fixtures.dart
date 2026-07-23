@@ -29,6 +29,7 @@ MediaFile mediaFile(
     parsedSeason: parsedSeason,
     parsedEpisode: parsedEpisode,
     parsedEpisodeEnd: parsedEpisodeEnd,
+    hidden: false,
   );
 }
 

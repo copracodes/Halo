@@ -28,6 +28,14 @@ class MetadataRepository {
             ..where((m) => m.movieKey.equals(movieKey)))
           .getSingleOrNull();
 
+  /// Every movie metadata row, for orphan pruning after a folder is removed.
+  Future<List<MovieMetadataData>> allMovies() =>
+      _db.select(_db.movieMetadata).get();
+
+  Future<void> deleteMovie(String movieKey) =>
+      (_db.delete(_db.movieMetadata)..where((m) => m.movieKey.equals(movieKey)))
+          .go();
+
   /// Creates a placeholder record for [movieKey] if none exists, so a scan can
   /// enqueue work without deciding anything about the match yet.
   Future<void> ensureMoviePending(String movieKey) async {
@@ -116,6 +124,18 @@ class MetadataRepository {
   Future<ShowMetadataData?> showByKey(String showKey) =>
       (_db.select(_db.showMetadata)..where((s) => s.showKey.equals(showKey)))
           .getSingleOrNull();
+
+  Future<List<ShowMetadataData>> allShows() =>
+      _db.select(_db.showMetadata).get();
+
+  Future<void> deleteShow(String showKey) =>
+      (_db.delete(_db.showMetadata)..where((s) => s.showKey.equals(showKey)))
+          .go();
+
+  Future<void> deleteEpisodesForShow(int showTmdbId) =>
+      (_db.delete(_db.episodeMetadata)
+            ..where((e) => e.showTmdbId.equals(showTmdbId)))
+          .go();
 
   Future<void> ensureShowPending(String showKey) async {
     await _db.into(_db.showMetadata).insert(
@@ -234,6 +254,30 @@ class MetadataRepository {
         .write(EpisodeMetadataCompanion(
       localStillPath: Value(localStillPath),
     ));
+  }
+
+  // --- Maintenance --------------------------------------------------------
+
+  /// Forgets every cached-image path across movies, shows, and episodes, so the
+  /// next sync re-downloads artwork. Paired with clearing the image files on
+  /// disk (see `MetadataImageCache.clear`): the TMDB records themselves — match
+  /// decisions, overviews, episode data — are left completely intact.
+  Future<void> clearAllLocalImagePaths() async {
+    await _db.update(_db.movieMetadata).write(
+          const MovieMetadataCompanion(
+            localPosterPath: Value(null),
+            localBackdropPath: Value(null),
+          ),
+        );
+    await _db.update(_db.showMetadata).write(
+          const ShowMetadataCompanion(
+            localPosterPath: Value(null),
+            localBackdropPath: Value(null),
+          ),
+        );
+    await _db.update(_db.episodeMetadata).write(
+          const EpisodeMetadataCompanion(localStillPath: Value(null)),
+        );
   }
 }
 

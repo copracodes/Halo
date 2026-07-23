@@ -476,6 +476,19 @@ class $MediaFilesTable extends MediaFiles
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _hiddenMeta = const VerificationMeta('hidden');
+  @override
+  late final GeneratedColumn<bool> hidden = GeneratedColumn<bool>(
+    'hidden',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("hidden" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -492,6 +505,7 @@ class $MediaFilesTable extends MediaFiles
     parsedEpisode,
     parsedEpisodeEnd,
     durationMs,
+    hidden,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -604,6 +618,12 @@ class $MediaFilesTable extends MediaFiles
         durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
       );
     }
+    if (data.containsKey('hidden')) {
+      context.handle(
+        _hiddenMeta,
+        hidden.isAcceptableOrUnknown(data['hidden']!, _hiddenMeta),
+      );
+    }
     return context;
   }
 
@@ -676,6 +696,11 @@ class $MediaFilesTable extends MediaFiles
         DriftSqlType.int,
         data['${effectivePrefix}duration_ms'],
       ),
+      hidden:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.bool,
+            data['${effectivePrefix}hidden'],
+          )!,
     );
   }
 
@@ -706,6 +731,12 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
   /// episodes.
   final int? parsedEpisodeEnd;
   final int? durationMs;
+
+  /// Hidden from the library UI without leaving the database. Set when the user
+  /// marks a file "not a movie" (a sample clip, a trailer) so it stops cluttering
+  /// the grids, matching, and continue-watching — but stays restorable from the
+  /// Hidden files list in settings. Excluded everywhere the UI reads media.
+  final bool hidden;
   const MediaFile({
     required this.id,
     this.folderId,
@@ -721,6 +752,7 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
     this.parsedEpisode,
     this.parsedEpisodeEnd,
     this.durationMs,
+    required this.hidden,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -759,6 +791,7 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
     if (!nullToAbsent || durationMs != null) {
       map['duration_ms'] = Variable<int>(durationMs);
     }
+    map['hidden'] = Variable<bool>(hidden);
     return map;
   }
 
@@ -802,6 +835,7 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
           durationMs == null && nullToAbsent
               ? const Value.absent()
               : Value(durationMs),
+      hidden: Value(hidden),
     );
   }
 
@@ -827,6 +861,7 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
       parsedEpisode: serializer.fromJson<int?>(json['parsedEpisode']),
       parsedEpisodeEnd: serializer.fromJson<int?>(json['parsedEpisodeEnd']),
       durationMs: serializer.fromJson<int?>(json['durationMs']),
+      hidden: serializer.fromJson<bool>(json['hidden']),
     );
   }
   @override
@@ -849,6 +884,7 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
       'parsedEpisode': serializer.toJson<int?>(parsedEpisode),
       'parsedEpisodeEnd': serializer.toJson<int?>(parsedEpisodeEnd),
       'durationMs': serializer.toJson<int?>(durationMs),
+      'hidden': serializer.toJson<bool>(hidden),
     };
   }
 
@@ -867,6 +903,7 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
     Value<int?> parsedEpisode = const Value.absent(),
     Value<int?> parsedEpisodeEnd = const Value.absent(),
     Value<int?> durationMs = const Value.absent(),
+    bool? hidden,
   }) => MediaFile(
     id: id ?? this.id,
     folderId: folderId.present ? folderId.value : this.folderId,
@@ -886,6 +923,7 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
             ? parsedEpisodeEnd.value
             : this.parsedEpisodeEnd,
     durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    hidden: hidden ?? this.hidden,
   );
   MediaFile copyWithCompanion(MediaFilesCompanion data) {
     return MediaFile(
@@ -919,6 +957,7 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
               : this.parsedEpisodeEnd,
       durationMs:
           data.durationMs.present ? data.durationMs.value : this.durationMs,
+      hidden: data.hidden.present ? data.hidden.value : this.hidden,
     );
   }
 
@@ -938,7 +977,8 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
           ..write('parsedSeason: $parsedSeason, ')
           ..write('parsedEpisode: $parsedEpisode, ')
           ..write('parsedEpisodeEnd: $parsedEpisodeEnd, ')
-          ..write('durationMs: $durationMs')
+          ..write('durationMs: $durationMs, ')
+          ..write('hidden: $hidden')
           ..write(')'))
         .toString();
   }
@@ -959,6 +999,7 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
     parsedEpisode,
     parsedEpisodeEnd,
     durationMs,
+    hidden,
   );
   @override
   bool operator ==(Object other) =>
@@ -977,7 +1018,8 @@ class MediaFile extends DataClass implements Insertable<MediaFile> {
           other.parsedSeason == this.parsedSeason &&
           other.parsedEpisode == this.parsedEpisode &&
           other.parsedEpisodeEnd == this.parsedEpisodeEnd &&
-          other.durationMs == this.durationMs);
+          other.durationMs == this.durationMs &&
+          other.hidden == this.hidden);
 }
 
 class MediaFilesCompanion extends UpdateCompanion<MediaFile> {
@@ -995,6 +1037,7 @@ class MediaFilesCompanion extends UpdateCompanion<MediaFile> {
   final Value<int?> parsedEpisode;
   final Value<int?> parsedEpisodeEnd;
   final Value<int?> durationMs;
+  final Value<bool> hidden;
   const MediaFilesCompanion({
     this.id = const Value.absent(),
     this.folderId = const Value.absent(),
@@ -1010,6 +1053,7 @@ class MediaFilesCompanion extends UpdateCompanion<MediaFile> {
     this.parsedEpisode = const Value.absent(),
     this.parsedEpisodeEnd = const Value.absent(),
     this.durationMs = const Value.absent(),
+    this.hidden = const Value.absent(),
   });
   MediaFilesCompanion.insert({
     this.id = const Value.absent(),
@@ -1026,6 +1070,7 @@ class MediaFilesCompanion extends UpdateCompanion<MediaFile> {
     this.parsedEpisode = const Value.absent(),
     this.parsedEpisodeEnd = const Value.absent(),
     this.durationMs = const Value.absent(),
+    this.hidden = const Value.absent(),
   }) : filePath = Value(filePath),
        fileName = Value(fileName),
        dateScanned = Value(dateScanned);
@@ -1044,6 +1089,7 @@ class MediaFilesCompanion extends UpdateCompanion<MediaFile> {
     Expression<int>? parsedEpisode,
     Expression<int>? parsedEpisodeEnd,
     Expression<int>? durationMs,
+    Expression<bool>? hidden,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1060,6 +1106,7 @@ class MediaFilesCompanion extends UpdateCompanion<MediaFile> {
       if (parsedEpisode != null) 'parsed_episode': parsedEpisode,
       if (parsedEpisodeEnd != null) 'parsed_episode_end': parsedEpisodeEnd,
       if (durationMs != null) 'duration_ms': durationMs,
+      if (hidden != null) 'hidden': hidden,
     });
   }
 
@@ -1078,6 +1125,7 @@ class MediaFilesCompanion extends UpdateCompanion<MediaFile> {
     Value<int?>? parsedEpisode,
     Value<int?>? parsedEpisodeEnd,
     Value<int?>? durationMs,
+    Value<bool>? hidden,
   }) {
     return MediaFilesCompanion(
       id: id ?? this.id,
@@ -1094,6 +1142,7 @@ class MediaFilesCompanion extends UpdateCompanion<MediaFile> {
       parsedEpisode: parsedEpisode ?? this.parsedEpisode,
       parsedEpisodeEnd: parsedEpisodeEnd ?? this.parsedEpisodeEnd,
       durationMs: durationMs ?? this.durationMs,
+      hidden: hidden ?? this.hidden,
     );
   }
 
@@ -1144,6 +1193,9 @@ class MediaFilesCompanion extends UpdateCompanion<MediaFile> {
     if (durationMs.present) {
       map['duration_ms'] = Variable<int>(durationMs.value);
     }
+    if (hidden.present) {
+      map['hidden'] = Variable<bool>(hidden.value);
+    }
     return map;
   }
 
@@ -1163,7 +1215,8 @@ class MediaFilesCompanion extends UpdateCompanion<MediaFile> {
           ..write('parsedSeason: $parsedSeason, ')
           ..write('parsedEpisode: $parsedEpisode, ')
           ..write('parsedEpisodeEnd: $parsedEpisodeEnd, ')
-          ..write('durationMs: $durationMs')
+          ..write('durationMs: $durationMs, ')
+          ..write('hidden: $hidden')
           ..write(')'))
         .toString();
   }
@@ -4442,6 +4495,7 @@ typedef $$MediaFilesTableCreateCompanionBuilder =
       Value<int?> parsedEpisode,
       Value<int?> parsedEpisodeEnd,
       Value<int?> durationMs,
+      Value<bool> hidden,
     });
 typedef $$MediaFilesTableUpdateCompanionBuilder =
     MediaFilesCompanion Function({
@@ -4459,6 +4513,7 @@ typedef $$MediaFilesTableUpdateCompanionBuilder =
       Value<int?> parsedEpisode,
       Value<int?> parsedEpisodeEnd,
       Value<int?> durationMs,
+      Value<bool> hidden,
     });
 
 final class $$MediaFilesTableReferences
@@ -4574,6 +4629,11 @@ class $$MediaFilesTableFilterComposer
 
   ColumnFilters<int> get durationMs => $composableBuilder(
     column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hidden => $composableBuilder(
+    column: $table.hidden,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4700,6 +4760,11 @@ class $$MediaFilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get hidden => $composableBuilder(
+    column: $table.hidden,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$LibraryFoldersTableOrderingComposer get folderId {
     final $$LibraryFoldersTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4787,6 +4852,9 @@ class $$MediaFilesTableAnnotationComposer
     column: $table.durationMs,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get hidden =>
+      $composableBuilder(column: $table.hidden, builder: (column) => column);
 
   $$LibraryFoldersTableAnnotationComposer get folderId {
     final $$LibraryFoldersTableAnnotationComposer composer = $composerBuilder(
@@ -4879,6 +4947,7 @@ class $$MediaFilesTableTableManager
                 Value<int?> parsedEpisode = const Value.absent(),
                 Value<int?> parsedEpisodeEnd = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
+                Value<bool> hidden = const Value.absent(),
               }) => MediaFilesCompanion(
                 id: id,
                 folderId: folderId,
@@ -4894,6 +4963,7 @@ class $$MediaFilesTableTableManager
                 parsedEpisode: parsedEpisode,
                 parsedEpisodeEnd: parsedEpisodeEnd,
                 durationMs: durationMs,
+                hidden: hidden,
               ),
           createCompanionCallback:
               ({
@@ -4911,6 +4981,7 @@ class $$MediaFilesTableTableManager
                 Value<int?> parsedEpisode = const Value.absent(),
                 Value<int?> parsedEpisodeEnd = const Value.absent(),
                 Value<int?> durationMs = const Value.absent(),
+                Value<bool> hidden = const Value.absent(),
               }) => MediaFilesCompanion.insert(
                 id: id,
                 folderId: folderId,
@@ -4926,6 +4997,7 @@ class $$MediaFilesTableTableManager
                 parsedEpisode: parsedEpisode,
                 parsedEpisodeEnd: parsedEpisodeEnd,
                 durationMs: durationMs,
+                hidden: hidden,
               ),
           withReferenceMapper:
               (p0) =>

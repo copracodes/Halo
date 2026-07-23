@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../data/database/app_database.dart';
+import '../../data/repositories/library_repository.dart';
+import '../metadata/fix_match_flow.dart';
+import '../metadata/metadata_keys.dart';
 import '../metadata/metadata_providers.dart';
 import '../player/play_media.dart';
 import 'library_providers.dart';
@@ -82,6 +86,7 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
                   title: entry.title,
                   heroTag: widget.heroTag,
                   facts: _facts(entry),
+                  actions: _menu(entry),
                 ),
               ),
               if (entry.overview != null)
@@ -107,6 +112,7 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
                     progress: progressByPath[episode.filePath],
                     watched: finished.contains(episode.filePath),
                     onTap: () => playMediaFile(context, episode),
+                    onLongPress: () => _confirmHideEpisode(episode),
                   );
                 },
               ),
@@ -127,6 +133,109 @@ class _ShowDetailScreenState extends ConsumerState<ShowDetailScreen> {
       if (seasons > 1) '$seasons seasons',
       '$episodes episode${episodes == 1 ? '' : 's'}',
     ];
+  }
+
+  /// The overflow menu over the backdrop: correct a wrong match or refresh it.
+  /// (Hiding a junk episode file lives on a long-press of the episode row.)
+  Widget _menu(ShowEntry entry) {
+    final isMatched = entry.tmdbId != null;
+
+    return PopupMenuButton<_ShowAction>(
+      icon: const Icon(Icons.more_vert, color: Colors.white),
+      tooltip: 'More',
+      onSelected: (action) => _onAction(action, entry),
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: _ShowAction.fixMatch,
+          child: _MenuRow(icon: Icons.search, label: 'Fix match'),
+        ),
+        if (isMatched)
+          const PopupMenuItem(
+            value: _ShowAction.refresh,
+            child: _MenuRow(icon: Icons.refresh, label: 'Refresh metadata'),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _onAction(_ShowAction action, ShowEntry entry) async {
+    final showKey = showKeyFor(entry.show.title);
+    switch (action) {
+      case _ShowAction.fixMatch:
+        await runFixMatch(
+          context,
+          ref,
+          matchKey: showKey,
+          parsedTitle: entry.show.title,
+          isMovie: false,
+        );
+      case _ShowAction.refresh:
+        await runRefreshMetadata(
+          context,
+          ref,
+          matchKey: showKey,
+          isMovie: false,
+        );
+    }
+  }
+
+  /// Confirms, then hides one episode file — for a stray sample or a mislabelled
+  /// clip that shouldn't be in the show.
+  Future<void> _confirmHideEpisode(MediaFile episode) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hide this file?'),
+        content: Text(
+          '“${episode.fileName}” will be hidden from your library. The file on '
+          'disk is not touched, and you can restore it from Settings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Hide'),
+          ),
+        ],
+      ),
+    );
+    if (!(confirmed ?? false) || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    await ref.read(libraryRepositoryProvider).setHidden(episode.id, true);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Hid “${episode.fileName}”. Restore it from Settings › Hidden files.',
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+}
+
+/// Actions in the show detail overflow menu.
+enum _ShowAction { fixMatch, refresh }
+
+/// An icon-and-label row for a popup menu item, matching the dark theme.
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppColors.textSecondary),
+        const SizedBox(width: 12),
+        Text(label, style: const TextStyle(color: AppColors.textPrimary)),
+      ],
+    );
   }
 }
 
