@@ -115,6 +115,12 @@ class LibraryRepository {
         .getSingleOrNull();
   }
 
+  /// The media-file id for [filePath], creating a minimal row if none exists —
+  /// so the player can attach subtitle associations to a file even before a scan
+  /// has indexed it (an ad-hoc opened file).
+  Future<int> findOrCreateMediaId(String filePath) =>
+      _db.findOrCreateMediaFileByPath(filePath);
+
   /// All indexed media files (used by reparse).
   Future<List<MediaFile>> allMedia() => _db.select(_db.mediaFiles).get();
 

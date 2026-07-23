@@ -9,6 +9,7 @@ import '../metadata/metadata_providers.dart';
 import '../metadata/metadata_sync.dart';
 import '../metadata/needs_review_screen.dart';
 import '../metadata/tmdb_attribution.dart';
+import '../player/playback_settings_screen.dart';
 import 'hidden_files_screen.dart';
 import 'library_providers.dart';
 import 'quality_label.dart';
@@ -184,6 +185,17 @@ class ManageFoldersScreen extends ConsumerWidget {
             ),
           ),
           _ImageCacheEntry(onClear: () => _clearImageCache(context, ref)),
+          _SettingsEntry(
+            icon: Icons.tune,
+            title: 'Playback',
+            subtitle: 'Languages, subtitles, and speed',
+            count: 0,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const PlaybackSettingsScreen(),
+              ),
+            ),
+          ),
           const Divider(height: 1),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),

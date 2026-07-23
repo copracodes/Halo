@@ -4144,6 +4144,1175 @@ class EpisodeMetadataCompanion extends UpdateCompanion<EpisodeMetadataData> {
   }
 }
 
+class $PlaybackPrefsTable extends PlaybackPrefs
+    with TableInfo<$PlaybackPrefsTable, PlaybackPrefsData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PlaybackPrefsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<PrefScope, int> scopeType =
+      GeneratedColumn<int>(
+        'scope_type',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<PrefScope>($PlaybackPrefsTable.$converterscopeType);
+  static const VerificationMeta _scopeKeyMeta = const VerificationMeta(
+    'scopeKey',
+  );
+  @override
+  late final GeneratedColumn<String> scopeKey = GeneratedColumn<String>(
+    'scope_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _preferredAudioLangMeta =
+      const VerificationMeta('preferredAudioLang');
+  @override
+  late final GeneratedColumn<String> preferredAudioLang =
+      GeneratedColumn<String>(
+        'preferred_audio_lang',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _preferredAudioTrackTitleMeta =
+      const VerificationMeta('preferredAudioTrackTitle');
+  @override
+  late final GeneratedColumn<String> preferredAudioTrackTitle =
+      GeneratedColumn<String>(
+        'preferred_audio_track_title',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _preferredSubtitleLangMeta =
+      const VerificationMeta('preferredSubtitleLang');
+  @override
+  late final GeneratedColumn<String> preferredSubtitleLang =
+      GeneratedColumn<String>(
+        'preferred_subtitle_lang',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _subtitlesEnabledMeta = const VerificationMeta(
+    'subtitlesEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> subtitlesEnabled = GeneratedColumn<bool>(
+    'subtitles_enabled',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("subtitles_enabled" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _preferredSpeedMeta = const VerificationMeta(
+    'preferredSpeed',
+  );
+  @override
+  late final GeneratedColumn<double> preferredSpeed = GeneratedColumn<double>(
+    'preferred_speed',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rememberSpeedPerShowMeta =
+      const VerificationMeta('rememberSpeedPerShow');
+  @override
+  late final GeneratedColumn<bool> rememberSpeedPerShow = GeneratedColumn<bool>(
+    'remember_speed_per_show',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("remember_speed_per_show" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _subtitleDelayMsMeta = const VerificationMeta(
+    'subtitleDelayMs',
+  );
+  @override
+  late final GeneratedColumn<int> subtitleDelayMs = GeneratedColumn<int>(
+    'subtitle_delay_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    scopeType,
+    scopeKey,
+    preferredAudioLang,
+    preferredAudioTrackTitle,
+    preferredSubtitleLang,
+    subtitlesEnabled,
+    preferredSpeed,
+    rememberSpeedPerShow,
+    subtitleDelayMs,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'playback_prefs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PlaybackPrefsData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('scope_key')) {
+      context.handle(
+        _scopeKeyMeta,
+        scopeKey.isAcceptableOrUnknown(data['scope_key']!, _scopeKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scopeKeyMeta);
+    }
+    if (data.containsKey('preferred_audio_lang')) {
+      context.handle(
+        _preferredAudioLangMeta,
+        preferredAudioLang.isAcceptableOrUnknown(
+          data['preferred_audio_lang']!,
+          _preferredAudioLangMeta,
+        ),
+      );
+    }
+    if (data.containsKey('preferred_audio_track_title')) {
+      context.handle(
+        _preferredAudioTrackTitleMeta,
+        preferredAudioTrackTitle.isAcceptableOrUnknown(
+          data['preferred_audio_track_title']!,
+          _preferredAudioTrackTitleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('preferred_subtitle_lang')) {
+      context.handle(
+        _preferredSubtitleLangMeta,
+        preferredSubtitleLang.isAcceptableOrUnknown(
+          data['preferred_subtitle_lang']!,
+          _preferredSubtitleLangMeta,
+        ),
+      );
+    }
+    if (data.containsKey('subtitles_enabled')) {
+      context.handle(
+        _subtitlesEnabledMeta,
+        subtitlesEnabled.isAcceptableOrUnknown(
+          data['subtitles_enabled']!,
+          _subtitlesEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('preferred_speed')) {
+      context.handle(
+        _preferredSpeedMeta,
+        preferredSpeed.isAcceptableOrUnknown(
+          data['preferred_speed']!,
+          _preferredSpeedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remember_speed_per_show')) {
+      context.handle(
+        _rememberSpeedPerShowMeta,
+        rememberSpeedPerShow.isAcceptableOrUnknown(
+          data['remember_speed_per_show']!,
+          _rememberSpeedPerShowMeta,
+        ),
+      );
+    }
+    if (data.containsKey('subtitle_delay_ms')) {
+      context.handle(
+        _subtitleDelayMsMeta,
+        subtitleDelayMs.isAcceptableOrUnknown(
+          data['subtitle_delay_ms']!,
+          _subtitleDelayMsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {scopeType, scopeKey},
+  ];
+  @override
+  PlaybackPrefsData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PlaybackPrefsData(
+      id:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}id'],
+          )!,
+      scopeType: $PlaybackPrefsTable.$converterscopeType.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}scope_type'],
+        )!,
+      ),
+      scopeKey:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}scope_key'],
+          )!,
+      preferredAudioLang: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preferred_audio_lang'],
+      ),
+      preferredAudioTrackTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preferred_audio_track_title'],
+      ),
+      preferredSubtitleLang: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preferred_subtitle_lang'],
+      ),
+      subtitlesEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}subtitles_enabled'],
+      ),
+      preferredSpeed: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}preferred_speed'],
+      ),
+      rememberSpeedPerShow: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}remember_speed_per_show'],
+      ),
+      subtitleDelayMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}subtitle_delay_ms'],
+      ),
+    );
+  }
+
+  @override
+  $PlaybackPrefsTable createAlias(String alias) {
+    return $PlaybackPrefsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<PrefScope, int, int> $converterscopeType =
+      const EnumIndexConverter<PrefScope>(PrefScope.values);
+}
+
+class PlaybackPrefsData extends DataClass
+    implements Insertable<PlaybackPrefsData> {
+  final int id;
+  final PrefScope scopeType;
+
+  /// The show key or movie key; empty string for the single global row.
+  final String scopeKey;
+
+  /// Preferred audio by language code (`en`, `eng`, `jpn`, …) and, as a
+  /// fallback for untagged tracks, by track title.
+  final String? preferredAudioLang;
+  final String? preferredAudioTrackTitle;
+  final String? preferredSubtitleLang;
+
+  /// Whether subtitles are on. Null means "inherit"; the global row's value is
+  /// the app-wide default.
+  final bool? subtitlesEnabled;
+
+  /// Playback speed. Null means "inherit"; resolves to 1.0 when nothing is set.
+  final double? preferredSpeed;
+
+  /// Whether speed is remembered per show/movie at all. Meaningful only on the
+  /// global row; null reads as true (on by default).
+  final bool? rememberSpeedPerShow;
+
+  /// Manual subtitle timing offset in milliseconds. Positive shows subtitles
+  /// later, negative earlier. Remembered per show/movie so a source's timing
+  /// quirk stays corrected across episodes. Null reads as no offset.
+  final int? subtitleDelayMs;
+  const PlaybackPrefsData({
+    required this.id,
+    required this.scopeType,
+    required this.scopeKey,
+    this.preferredAudioLang,
+    this.preferredAudioTrackTitle,
+    this.preferredSubtitleLang,
+    this.subtitlesEnabled,
+    this.preferredSpeed,
+    this.rememberSpeedPerShow,
+    this.subtitleDelayMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    {
+      map['scope_type'] = Variable<int>(
+        $PlaybackPrefsTable.$converterscopeType.toSql(scopeType),
+      );
+    }
+    map['scope_key'] = Variable<String>(scopeKey);
+    if (!nullToAbsent || preferredAudioLang != null) {
+      map['preferred_audio_lang'] = Variable<String>(preferredAudioLang);
+    }
+    if (!nullToAbsent || preferredAudioTrackTitle != null) {
+      map['preferred_audio_track_title'] = Variable<String>(
+        preferredAudioTrackTitle,
+      );
+    }
+    if (!nullToAbsent || preferredSubtitleLang != null) {
+      map['preferred_subtitle_lang'] = Variable<String>(preferredSubtitleLang);
+    }
+    if (!nullToAbsent || subtitlesEnabled != null) {
+      map['subtitles_enabled'] = Variable<bool>(subtitlesEnabled);
+    }
+    if (!nullToAbsent || preferredSpeed != null) {
+      map['preferred_speed'] = Variable<double>(preferredSpeed);
+    }
+    if (!nullToAbsent || rememberSpeedPerShow != null) {
+      map['remember_speed_per_show'] = Variable<bool>(rememberSpeedPerShow);
+    }
+    if (!nullToAbsent || subtitleDelayMs != null) {
+      map['subtitle_delay_ms'] = Variable<int>(subtitleDelayMs);
+    }
+    return map;
+  }
+
+  PlaybackPrefsCompanion toCompanion(bool nullToAbsent) {
+    return PlaybackPrefsCompanion(
+      id: Value(id),
+      scopeType: Value(scopeType),
+      scopeKey: Value(scopeKey),
+      preferredAudioLang:
+          preferredAudioLang == null && nullToAbsent
+              ? const Value.absent()
+              : Value(preferredAudioLang),
+      preferredAudioTrackTitle:
+          preferredAudioTrackTitle == null && nullToAbsent
+              ? const Value.absent()
+              : Value(preferredAudioTrackTitle),
+      preferredSubtitleLang:
+          preferredSubtitleLang == null && nullToAbsent
+              ? const Value.absent()
+              : Value(preferredSubtitleLang),
+      subtitlesEnabled:
+          subtitlesEnabled == null && nullToAbsent
+              ? const Value.absent()
+              : Value(subtitlesEnabled),
+      preferredSpeed:
+          preferredSpeed == null && nullToAbsent
+              ? const Value.absent()
+              : Value(preferredSpeed),
+      rememberSpeedPerShow:
+          rememberSpeedPerShow == null && nullToAbsent
+              ? const Value.absent()
+              : Value(rememberSpeedPerShow),
+      subtitleDelayMs:
+          subtitleDelayMs == null && nullToAbsent
+              ? const Value.absent()
+              : Value(subtitleDelayMs),
+    );
+  }
+
+  factory PlaybackPrefsData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PlaybackPrefsData(
+      id: serializer.fromJson<int>(json['id']),
+      scopeType: $PlaybackPrefsTable.$converterscopeType.fromJson(
+        serializer.fromJson<int>(json['scopeType']),
+      ),
+      scopeKey: serializer.fromJson<String>(json['scopeKey']),
+      preferredAudioLang: serializer.fromJson<String?>(
+        json['preferredAudioLang'],
+      ),
+      preferredAudioTrackTitle: serializer.fromJson<String?>(
+        json['preferredAudioTrackTitle'],
+      ),
+      preferredSubtitleLang: serializer.fromJson<String?>(
+        json['preferredSubtitleLang'],
+      ),
+      subtitlesEnabled: serializer.fromJson<bool?>(json['subtitlesEnabled']),
+      preferredSpeed: serializer.fromJson<double?>(json['preferredSpeed']),
+      rememberSpeedPerShow: serializer.fromJson<bool?>(
+        json['rememberSpeedPerShow'],
+      ),
+      subtitleDelayMs: serializer.fromJson<int?>(json['subtitleDelayMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'scopeType': serializer.toJson<int>(
+        $PlaybackPrefsTable.$converterscopeType.toJson(scopeType),
+      ),
+      'scopeKey': serializer.toJson<String>(scopeKey),
+      'preferredAudioLang': serializer.toJson<String?>(preferredAudioLang),
+      'preferredAudioTrackTitle': serializer.toJson<String?>(
+        preferredAudioTrackTitle,
+      ),
+      'preferredSubtitleLang': serializer.toJson<String?>(
+        preferredSubtitleLang,
+      ),
+      'subtitlesEnabled': serializer.toJson<bool?>(subtitlesEnabled),
+      'preferredSpeed': serializer.toJson<double?>(preferredSpeed),
+      'rememberSpeedPerShow': serializer.toJson<bool?>(rememberSpeedPerShow),
+      'subtitleDelayMs': serializer.toJson<int?>(subtitleDelayMs),
+    };
+  }
+
+  PlaybackPrefsData copyWith({
+    int? id,
+    PrefScope? scopeType,
+    String? scopeKey,
+    Value<String?> preferredAudioLang = const Value.absent(),
+    Value<String?> preferredAudioTrackTitle = const Value.absent(),
+    Value<String?> preferredSubtitleLang = const Value.absent(),
+    Value<bool?> subtitlesEnabled = const Value.absent(),
+    Value<double?> preferredSpeed = const Value.absent(),
+    Value<bool?> rememberSpeedPerShow = const Value.absent(),
+    Value<int?> subtitleDelayMs = const Value.absent(),
+  }) => PlaybackPrefsData(
+    id: id ?? this.id,
+    scopeType: scopeType ?? this.scopeType,
+    scopeKey: scopeKey ?? this.scopeKey,
+    preferredAudioLang:
+        preferredAudioLang.present
+            ? preferredAudioLang.value
+            : this.preferredAudioLang,
+    preferredAudioTrackTitle:
+        preferredAudioTrackTitle.present
+            ? preferredAudioTrackTitle.value
+            : this.preferredAudioTrackTitle,
+    preferredSubtitleLang:
+        preferredSubtitleLang.present
+            ? preferredSubtitleLang.value
+            : this.preferredSubtitleLang,
+    subtitlesEnabled:
+        subtitlesEnabled.present
+            ? subtitlesEnabled.value
+            : this.subtitlesEnabled,
+    preferredSpeed:
+        preferredSpeed.present ? preferredSpeed.value : this.preferredSpeed,
+    rememberSpeedPerShow:
+        rememberSpeedPerShow.present
+            ? rememberSpeedPerShow.value
+            : this.rememberSpeedPerShow,
+    subtitleDelayMs:
+        subtitleDelayMs.present ? subtitleDelayMs.value : this.subtitleDelayMs,
+  );
+  PlaybackPrefsData copyWithCompanion(PlaybackPrefsCompanion data) {
+    return PlaybackPrefsData(
+      id: data.id.present ? data.id.value : this.id,
+      scopeType: data.scopeType.present ? data.scopeType.value : this.scopeType,
+      scopeKey: data.scopeKey.present ? data.scopeKey.value : this.scopeKey,
+      preferredAudioLang:
+          data.preferredAudioLang.present
+              ? data.preferredAudioLang.value
+              : this.preferredAudioLang,
+      preferredAudioTrackTitle:
+          data.preferredAudioTrackTitle.present
+              ? data.preferredAudioTrackTitle.value
+              : this.preferredAudioTrackTitle,
+      preferredSubtitleLang:
+          data.preferredSubtitleLang.present
+              ? data.preferredSubtitleLang.value
+              : this.preferredSubtitleLang,
+      subtitlesEnabled:
+          data.subtitlesEnabled.present
+              ? data.subtitlesEnabled.value
+              : this.subtitlesEnabled,
+      preferredSpeed:
+          data.preferredSpeed.present
+              ? data.preferredSpeed.value
+              : this.preferredSpeed,
+      rememberSpeedPerShow:
+          data.rememberSpeedPerShow.present
+              ? data.rememberSpeedPerShow.value
+              : this.rememberSpeedPerShow,
+      subtitleDelayMs:
+          data.subtitleDelayMs.present
+              ? data.subtitleDelayMs.value
+              : this.subtitleDelayMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlaybackPrefsData(')
+          ..write('id: $id, ')
+          ..write('scopeType: $scopeType, ')
+          ..write('scopeKey: $scopeKey, ')
+          ..write('preferredAudioLang: $preferredAudioLang, ')
+          ..write('preferredAudioTrackTitle: $preferredAudioTrackTitle, ')
+          ..write('preferredSubtitleLang: $preferredSubtitleLang, ')
+          ..write('subtitlesEnabled: $subtitlesEnabled, ')
+          ..write('preferredSpeed: $preferredSpeed, ')
+          ..write('rememberSpeedPerShow: $rememberSpeedPerShow, ')
+          ..write('subtitleDelayMs: $subtitleDelayMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    scopeType,
+    scopeKey,
+    preferredAudioLang,
+    preferredAudioTrackTitle,
+    preferredSubtitleLang,
+    subtitlesEnabled,
+    preferredSpeed,
+    rememberSpeedPerShow,
+    subtitleDelayMs,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PlaybackPrefsData &&
+          other.id == this.id &&
+          other.scopeType == this.scopeType &&
+          other.scopeKey == this.scopeKey &&
+          other.preferredAudioLang == this.preferredAudioLang &&
+          other.preferredAudioTrackTitle == this.preferredAudioTrackTitle &&
+          other.preferredSubtitleLang == this.preferredSubtitleLang &&
+          other.subtitlesEnabled == this.subtitlesEnabled &&
+          other.preferredSpeed == this.preferredSpeed &&
+          other.rememberSpeedPerShow == this.rememberSpeedPerShow &&
+          other.subtitleDelayMs == this.subtitleDelayMs);
+}
+
+class PlaybackPrefsCompanion extends UpdateCompanion<PlaybackPrefsData> {
+  final Value<int> id;
+  final Value<PrefScope> scopeType;
+  final Value<String> scopeKey;
+  final Value<String?> preferredAudioLang;
+  final Value<String?> preferredAudioTrackTitle;
+  final Value<String?> preferredSubtitleLang;
+  final Value<bool?> subtitlesEnabled;
+  final Value<double?> preferredSpeed;
+  final Value<bool?> rememberSpeedPerShow;
+  final Value<int?> subtitleDelayMs;
+  const PlaybackPrefsCompanion({
+    this.id = const Value.absent(),
+    this.scopeType = const Value.absent(),
+    this.scopeKey = const Value.absent(),
+    this.preferredAudioLang = const Value.absent(),
+    this.preferredAudioTrackTitle = const Value.absent(),
+    this.preferredSubtitleLang = const Value.absent(),
+    this.subtitlesEnabled = const Value.absent(),
+    this.preferredSpeed = const Value.absent(),
+    this.rememberSpeedPerShow = const Value.absent(),
+    this.subtitleDelayMs = const Value.absent(),
+  });
+  PlaybackPrefsCompanion.insert({
+    this.id = const Value.absent(),
+    required PrefScope scopeType,
+    required String scopeKey,
+    this.preferredAudioLang = const Value.absent(),
+    this.preferredAudioTrackTitle = const Value.absent(),
+    this.preferredSubtitleLang = const Value.absent(),
+    this.subtitlesEnabled = const Value.absent(),
+    this.preferredSpeed = const Value.absent(),
+    this.rememberSpeedPerShow = const Value.absent(),
+    this.subtitleDelayMs = const Value.absent(),
+  }) : scopeType = Value(scopeType),
+       scopeKey = Value(scopeKey);
+  static Insertable<PlaybackPrefsData> custom({
+    Expression<int>? id,
+    Expression<int>? scopeType,
+    Expression<String>? scopeKey,
+    Expression<String>? preferredAudioLang,
+    Expression<String>? preferredAudioTrackTitle,
+    Expression<String>? preferredSubtitleLang,
+    Expression<bool>? subtitlesEnabled,
+    Expression<double>? preferredSpeed,
+    Expression<bool>? rememberSpeedPerShow,
+    Expression<int>? subtitleDelayMs,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (scopeType != null) 'scope_type': scopeType,
+      if (scopeKey != null) 'scope_key': scopeKey,
+      if (preferredAudioLang != null)
+        'preferred_audio_lang': preferredAudioLang,
+      if (preferredAudioTrackTitle != null)
+        'preferred_audio_track_title': preferredAudioTrackTitle,
+      if (preferredSubtitleLang != null)
+        'preferred_subtitle_lang': preferredSubtitleLang,
+      if (subtitlesEnabled != null) 'subtitles_enabled': subtitlesEnabled,
+      if (preferredSpeed != null) 'preferred_speed': preferredSpeed,
+      if (rememberSpeedPerShow != null)
+        'remember_speed_per_show': rememberSpeedPerShow,
+      if (subtitleDelayMs != null) 'subtitle_delay_ms': subtitleDelayMs,
+    });
+  }
+
+  PlaybackPrefsCompanion copyWith({
+    Value<int>? id,
+    Value<PrefScope>? scopeType,
+    Value<String>? scopeKey,
+    Value<String?>? preferredAudioLang,
+    Value<String?>? preferredAudioTrackTitle,
+    Value<String?>? preferredSubtitleLang,
+    Value<bool?>? subtitlesEnabled,
+    Value<double?>? preferredSpeed,
+    Value<bool?>? rememberSpeedPerShow,
+    Value<int?>? subtitleDelayMs,
+  }) {
+    return PlaybackPrefsCompanion(
+      id: id ?? this.id,
+      scopeType: scopeType ?? this.scopeType,
+      scopeKey: scopeKey ?? this.scopeKey,
+      preferredAudioLang: preferredAudioLang ?? this.preferredAudioLang,
+      preferredAudioTrackTitle:
+          preferredAudioTrackTitle ?? this.preferredAudioTrackTitle,
+      preferredSubtitleLang:
+          preferredSubtitleLang ?? this.preferredSubtitleLang,
+      subtitlesEnabled: subtitlesEnabled ?? this.subtitlesEnabled,
+      preferredSpeed: preferredSpeed ?? this.preferredSpeed,
+      rememberSpeedPerShow: rememberSpeedPerShow ?? this.rememberSpeedPerShow,
+      subtitleDelayMs: subtitleDelayMs ?? this.subtitleDelayMs,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (scopeType.present) {
+      map['scope_type'] = Variable<int>(
+        $PlaybackPrefsTable.$converterscopeType.toSql(scopeType.value),
+      );
+    }
+    if (scopeKey.present) {
+      map['scope_key'] = Variable<String>(scopeKey.value);
+    }
+    if (preferredAudioLang.present) {
+      map['preferred_audio_lang'] = Variable<String>(preferredAudioLang.value);
+    }
+    if (preferredAudioTrackTitle.present) {
+      map['preferred_audio_track_title'] = Variable<String>(
+        preferredAudioTrackTitle.value,
+      );
+    }
+    if (preferredSubtitleLang.present) {
+      map['preferred_subtitle_lang'] = Variable<String>(
+        preferredSubtitleLang.value,
+      );
+    }
+    if (subtitlesEnabled.present) {
+      map['subtitles_enabled'] = Variable<bool>(subtitlesEnabled.value);
+    }
+    if (preferredSpeed.present) {
+      map['preferred_speed'] = Variable<double>(preferredSpeed.value);
+    }
+    if (rememberSpeedPerShow.present) {
+      map['remember_speed_per_show'] = Variable<bool>(
+        rememberSpeedPerShow.value,
+      );
+    }
+    if (subtitleDelayMs.present) {
+      map['subtitle_delay_ms'] = Variable<int>(subtitleDelayMs.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlaybackPrefsCompanion(')
+          ..write('id: $id, ')
+          ..write('scopeType: $scopeType, ')
+          ..write('scopeKey: $scopeKey, ')
+          ..write('preferredAudioLang: $preferredAudioLang, ')
+          ..write('preferredAudioTrackTitle: $preferredAudioTrackTitle, ')
+          ..write('preferredSubtitleLang: $preferredSubtitleLang, ')
+          ..write('subtitlesEnabled: $subtitlesEnabled, ')
+          ..write('preferredSpeed: $preferredSpeed, ')
+          ..write('rememberSpeedPerShow: $rememberSpeedPerShow, ')
+          ..write('subtitleDelayMs: $subtitleDelayMs')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SubtitleFilesTable extends SubtitleFiles
+    with TableInfo<$SubtitleFilesTable, SubtitleFileData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SubtitleFilesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _mediaFileIdMeta = const VerificationMeta(
+    'mediaFileId',
+  );
+  @override
+  late final GeneratedColumn<int> mediaFileId = GeneratedColumn<int>(
+    'media_file_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES media_files (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _uriMeta = const VerificationMeta('uri');
+  @override
+  late final GeneratedColumn<String> uri = GeneratedColumn<String>(
+    'uri',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _languageCodeMeta = const VerificationMeta(
+    'languageCode',
+  );
+  @override
+  late final GeneratedColumn<String> languageCode = GeneratedColumn<String>(
+    'language_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<SubtitleSource, int> source =
+      GeneratedColumn<int>(
+        'source',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<SubtitleSource>($SubtitleFilesTable.$convertersource);
+  static const VerificationMeta _selectedMeta = const VerificationMeta(
+    'selected',
+  );
+  @override
+  late final GeneratedColumn<bool> selected = GeneratedColumn<bool>(
+    'selected',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("selected" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    mediaFileId,
+    uri,
+    languageCode,
+    source,
+    selected,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'subtitle_files';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SubtitleFileData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('media_file_id')) {
+      context.handle(
+        _mediaFileIdMeta,
+        mediaFileId.isAcceptableOrUnknown(
+          data['media_file_id']!,
+          _mediaFileIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_mediaFileIdMeta);
+    }
+    if (data.containsKey('uri')) {
+      context.handle(
+        _uriMeta,
+        uri.isAcceptableOrUnknown(data['uri']!, _uriMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uriMeta);
+    }
+    if (data.containsKey('language_code')) {
+      context.handle(
+        _languageCodeMeta,
+        languageCode.isAcceptableOrUnknown(
+          data['language_code']!,
+          _languageCodeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('selected')) {
+      context.handle(
+        _selectedMeta,
+        selected.isAcceptableOrUnknown(data['selected']!, _selectedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {mediaFileId, uri},
+  ];
+  @override
+  SubtitleFileData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SubtitleFileData(
+      id:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}id'],
+          )!,
+      mediaFileId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}media_file_id'],
+          )!,
+      uri:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}uri'],
+          )!,
+      languageCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}language_code'],
+      ),
+      source: $SubtitleFilesTable.$convertersource.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}source'],
+        )!,
+      ),
+      selected:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.bool,
+            data['${effectivePrefix}selected'],
+          )!,
+    );
+  }
+
+  @override
+  $SubtitleFilesTable createAlias(String alias) {
+    return $SubtitleFilesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SubtitleSource, int, int> $convertersource =
+      const EnumIndexConverter<SubtitleSource>(SubtitleSource.values);
+}
+
+class SubtitleFileData extends DataClass
+    implements Insertable<SubtitleFileData> {
+  final int id;
+  final int mediaFileId;
+
+  /// The subtitle file's stable handle: a SAF `content://` URI (or a plain path
+  /// on platforms that use one).
+  final String uri;
+
+  /// Language code parsed from the filename (`en`, `eng`), or null when the name
+  /// carried none.
+  final String? languageCode;
+  final SubtitleSource source;
+
+  /// The one external subtitle the viewer last chose for this video, so
+  /// reopening it re-activates exactly that track. At most one row per video is
+  /// selected at a time.
+  final bool selected;
+  const SubtitleFileData({
+    required this.id,
+    required this.mediaFileId,
+    required this.uri,
+    this.languageCode,
+    required this.source,
+    required this.selected,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['media_file_id'] = Variable<int>(mediaFileId);
+    map['uri'] = Variable<String>(uri);
+    if (!nullToAbsent || languageCode != null) {
+      map['language_code'] = Variable<String>(languageCode);
+    }
+    {
+      map['source'] = Variable<int>(
+        $SubtitleFilesTable.$convertersource.toSql(source),
+      );
+    }
+    map['selected'] = Variable<bool>(selected);
+    return map;
+  }
+
+  SubtitleFilesCompanion toCompanion(bool nullToAbsent) {
+    return SubtitleFilesCompanion(
+      id: Value(id),
+      mediaFileId: Value(mediaFileId),
+      uri: Value(uri),
+      languageCode:
+          languageCode == null && nullToAbsent
+              ? const Value.absent()
+              : Value(languageCode),
+      source: Value(source),
+      selected: Value(selected),
+    );
+  }
+
+  factory SubtitleFileData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SubtitleFileData(
+      id: serializer.fromJson<int>(json['id']),
+      mediaFileId: serializer.fromJson<int>(json['mediaFileId']),
+      uri: serializer.fromJson<String>(json['uri']),
+      languageCode: serializer.fromJson<String?>(json['languageCode']),
+      source: $SubtitleFilesTable.$convertersource.fromJson(
+        serializer.fromJson<int>(json['source']),
+      ),
+      selected: serializer.fromJson<bool>(json['selected']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'mediaFileId': serializer.toJson<int>(mediaFileId),
+      'uri': serializer.toJson<String>(uri),
+      'languageCode': serializer.toJson<String?>(languageCode),
+      'source': serializer.toJson<int>(
+        $SubtitleFilesTable.$convertersource.toJson(source),
+      ),
+      'selected': serializer.toJson<bool>(selected),
+    };
+  }
+
+  SubtitleFileData copyWith({
+    int? id,
+    int? mediaFileId,
+    String? uri,
+    Value<String?> languageCode = const Value.absent(),
+    SubtitleSource? source,
+    bool? selected,
+  }) => SubtitleFileData(
+    id: id ?? this.id,
+    mediaFileId: mediaFileId ?? this.mediaFileId,
+    uri: uri ?? this.uri,
+    languageCode: languageCode.present ? languageCode.value : this.languageCode,
+    source: source ?? this.source,
+    selected: selected ?? this.selected,
+  );
+  SubtitleFileData copyWithCompanion(SubtitleFilesCompanion data) {
+    return SubtitleFileData(
+      id: data.id.present ? data.id.value : this.id,
+      mediaFileId:
+          data.mediaFileId.present ? data.mediaFileId.value : this.mediaFileId,
+      uri: data.uri.present ? data.uri.value : this.uri,
+      languageCode:
+          data.languageCode.present
+              ? data.languageCode.value
+              : this.languageCode,
+      source: data.source.present ? data.source.value : this.source,
+      selected: data.selected.present ? data.selected.value : this.selected,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubtitleFileData(')
+          ..write('id: $id, ')
+          ..write('mediaFileId: $mediaFileId, ')
+          ..write('uri: $uri, ')
+          ..write('languageCode: $languageCode, ')
+          ..write('source: $source, ')
+          ..write('selected: $selected')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, mediaFileId, uri, languageCode, source, selected);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SubtitleFileData &&
+          other.id == this.id &&
+          other.mediaFileId == this.mediaFileId &&
+          other.uri == this.uri &&
+          other.languageCode == this.languageCode &&
+          other.source == this.source &&
+          other.selected == this.selected);
+}
+
+class SubtitleFilesCompanion extends UpdateCompanion<SubtitleFileData> {
+  final Value<int> id;
+  final Value<int> mediaFileId;
+  final Value<String> uri;
+  final Value<String?> languageCode;
+  final Value<SubtitleSource> source;
+  final Value<bool> selected;
+  const SubtitleFilesCompanion({
+    this.id = const Value.absent(),
+    this.mediaFileId = const Value.absent(),
+    this.uri = const Value.absent(),
+    this.languageCode = const Value.absent(),
+    this.source = const Value.absent(),
+    this.selected = const Value.absent(),
+  });
+  SubtitleFilesCompanion.insert({
+    this.id = const Value.absent(),
+    required int mediaFileId,
+    required String uri,
+    this.languageCode = const Value.absent(),
+    required SubtitleSource source,
+    this.selected = const Value.absent(),
+  }) : mediaFileId = Value(mediaFileId),
+       uri = Value(uri),
+       source = Value(source);
+  static Insertable<SubtitleFileData> custom({
+    Expression<int>? id,
+    Expression<int>? mediaFileId,
+    Expression<String>? uri,
+    Expression<String>? languageCode,
+    Expression<int>? source,
+    Expression<bool>? selected,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (mediaFileId != null) 'media_file_id': mediaFileId,
+      if (uri != null) 'uri': uri,
+      if (languageCode != null) 'language_code': languageCode,
+      if (source != null) 'source': source,
+      if (selected != null) 'selected': selected,
+    });
+  }
+
+  SubtitleFilesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? mediaFileId,
+    Value<String>? uri,
+    Value<String?>? languageCode,
+    Value<SubtitleSource>? source,
+    Value<bool>? selected,
+  }) {
+    return SubtitleFilesCompanion(
+      id: id ?? this.id,
+      mediaFileId: mediaFileId ?? this.mediaFileId,
+      uri: uri ?? this.uri,
+      languageCode: languageCode ?? this.languageCode,
+      source: source ?? this.source,
+      selected: selected ?? this.selected,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (mediaFileId.present) {
+      map['media_file_id'] = Variable<int>(mediaFileId.value);
+    }
+    if (uri.present) {
+      map['uri'] = Variable<String>(uri.value);
+    }
+    if (languageCode.present) {
+      map['language_code'] = Variable<String>(languageCode.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<int>(
+        $SubtitleFilesTable.$convertersource.toSql(source.value),
+      );
+    }
+    if (selected.present) {
+      map['selected'] = Variable<bool>(selected.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubtitleFilesCompanion(')
+          ..write('id: $id, ')
+          ..write('mediaFileId: $mediaFileId, ')
+          ..write('uri: $uri, ')
+          ..write('languageCode: $languageCode, ')
+          ..write('source: $source, ')
+          ..write('selected: $selected')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4155,6 +5324,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $EpisodeMetadataTable episodeMetadata = $EpisodeMetadataTable(
     this,
   );
+  late final $PlaybackPrefsTable playbackPrefs = $PlaybackPrefsTable(this);
+  late final $SubtitleFilesTable subtitleFiles = $SubtitleFilesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4166,6 +5337,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     movieMetadata,
     showMetadata,
     episodeMetadata,
+    playbackPrefs,
+    subtitleFiles,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -4182,6 +5355,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('watch_progress', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'media_files',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('subtitle_files', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -4555,6 +5735,24 @@ final class $$MediaFilesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$SubtitleFilesTable, List<SubtitleFileData>>
+  _subtitleFilesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.subtitleFiles,
+    aliasName: 'media_files__id__subtitle_files__media_file_id',
+  );
+
+  $$SubtitleFilesTableProcessedTableManager get subtitleFilesRefs {
+    final manager = $$SubtitleFilesTableTableManager(
+      $_db,
+      $_db.subtitleFiles,
+    ).filter((f) => f.mediaFileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_subtitleFilesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$MediaFilesTableFilterComposer
@@ -4676,6 +5874,31 @@ class $$MediaFilesTableFilterComposer
           }) => $$WatchProgressTableFilterComposer(
             $db: $db,
             $table: $db.watchProgress,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> subtitleFilesRefs(
+    Expression<bool> Function($$SubtitleFilesTableFilterComposer f) f,
+  ) {
+    final $$SubtitleFilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.subtitleFiles,
+      getReferencedColumn: (t) => t.mediaFileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubtitleFilesTableFilterComposer(
+            $db: $db,
+            $table: $db.subtitleFiles,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4903,6 +6126,31 @@ class $$MediaFilesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> subtitleFilesRefs<T extends Object>(
+    Expression<T> Function($$SubtitleFilesTableAnnotationComposer a) f,
+  ) {
+    final $$SubtitleFilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.subtitleFiles,
+      getReferencedColumn: (t) => t.mediaFileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubtitleFilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.subtitleFiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$MediaFilesTableTableManager
@@ -4918,7 +6166,11 @@ class $$MediaFilesTableTableManager
           $$MediaFilesTableUpdateCompanionBuilder,
           (MediaFile, $$MediaFilesTableReferences),
           MediaFile,
-          PrefetchHooks Function({bool folderId, bool watchProgressRefs})
+          PrefetchHooks Function({
+            bool folderId,
+            bool watchProgressRefs,
+            bool subtitleFilesRefs,
+          })
         > {
   $$MediaFilesTableTableManager(_$AppDatabase db, $MediaFilesTable table)
     : super(
@@ -5012,11 +6264,13 @@ class $$MediaFilesTableTableManager
           prefetchHooksCallback: ({
             folderId = false,
             watchProgressRefs = false,
+            subtitleFilesRefs = false,
           }) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
                 if (watchProgressRefs) db.watchProgress,
+                if (subtitleFilesRefs) db.subtitleFiles,
               ],
               addJoins: <
                 T extends TableManagerState<
@@ -5074,6 +6328,28 @@ class $$MediaFilesTableTableManager
                           ),
                       typedResults: items,
                     ),
+                  if (subtitleFilesRefs)
+                    await $_getPrefetchedData<
+                      MediaFile,
+                      $MediaFilesTable,
+                      SubtitleFileData
+                    >(
+                      currentTable: table,
+                      referencedTable: $$MediaFilesTableReferences
+                          ._subtitleFilesRefsTable(db),
+                      managerFromTypedResult:
+                          (p0) =>
+                              $$MediaFilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).subtitleFilesRefs,
+                      referencedItemsForCurrentItem:
+                          (item, referencedItems) => referencedItems.where(
+                            (e) => e.mediaFileId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
                 ];
               },
             );
@@ -5094,7 +6370,11 @@ typedef $$MediaFilesTableProcessedTableManager =
       $$MediaFilesTableUpdateCompanionBuilder,
       (MediaFile, $$MediaFilesTableReferences),
       MediaFile,
-      PrefetchHooks Function({bool folderId, bool watchProgressRefs})
+      PrefetchHooks Function({
+        bool folderId,
+        bool watchProgressRefs,
+        bool subtitleFilesRefs,
+      })
     >;
 typedef $$WatchProgressTableCreateCompanionBuilder =
     WatchProgressCompanion Function({
@@ -6610,6 +7890,669 @@ typedef $$EpisodeMetadataTableProcessedTableManager =
       EpisodeMetadataData,
       PrefetchHooks Function()
     >;
+typedef $$PlaybackPrefsTableCreateCompanionBuilder =
+    PlaybackPrefsCompanion Function({
+      Value<int> id,
+      required PrefScope scopeType,
+      required String scopeKey,
+      Value<String?> preferredAudioLang,
+      Value<String?> preferredAudioTrackTitle,
+      Value<String?> preferredSubtitleLang,
+      Value<bool?> subtitlesEnabled,
+      Value<double?> preferredSpeed,
+      Value<bool?> rememberSpeedPerShow,
+      Value<int?> subtitleDelayMs,
+    });
+typedef $$PlaybackPrefsTableUpdateCompanionBuilder =
+    PlaybackPrefsCompanion Function({
+      Value<int> id,
+      Value<PrefScope> scopeType,
+      Value<String> scopeKey,
+      Value<String?> preferredAudioLang,
+      Value<String?> preferredAudioTrackTitle,
+      Value<String?> preferredSubtitleLang,
+      Value<bool?> subtitlesEnabled,
+      Value<double?> preferredSpeed,
+      Value<bool?> rememberSpeedPerShow,
+      Value<int?> subtitleDelayMs,
+    });
+
+class $$PlaybackPrefsTableFilterComposer
+    extends Composer<_$AppDatabase, $PlaybackPrefsTable> {
+  $$PlaybackPrefsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<PrefScope, PrefScope, int> get scopeType =>
+      $composableBuilder(
+        column: $table.scopeType,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get scopeKey => $composableBuilder(
+    column: $table.scopeKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get preferredAudioLang => $composableBuilder(
+    column: $table.preferredAudioLang,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get preferredAudioTrackTitle => $composableBuilder(
+    column: $table.preferredAudioTrackTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get preferredSubtitleLang => $composableBuilder(
+    column: $table.preferredSubtitleLang,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get subtitlesEnabled => $composableBuilder(
+    column: $table.subtitlesEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get preferredSpeed => $composableBuilder(
+    column: $table.preferredSpeed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get rememberSpeedPerShow => $composableBuilder(
+    column: $table.rememberSpeedPerShow,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get subtitleDelayMs => $composableBuilder(
+    column: $table.subtitleDelayMs,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PlaybackPrefsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PlaybackPrefsTable> {
+  $$PlaybackPrefsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get scopeType => $composableBuilder(
+    column: $table.scopeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scopeKey => $composableBuilder(
+    column: $table.scopeKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get preferredAudioLang => $composableBuilder(
+    column: $table.preferredAudioLang,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get preferredAudioTrackTitle => $composableBuilder(
+    column: $table.preferredAudioTrackTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get preferredSubtitleLang => $composableBuilder(
+    column: $table.preferredSubtitleLang,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get subtitlesEnabled => $composableBuilder(
+    column: $table.subtitlesEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get preferredSpeed => $composableBuilder(
+    column: $table.preferredSpeed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get rememberSpeedPerShow => $composableBuilder(
+    column: $table.rememberSpeedPerShow,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get subtitleDelayMs => $composableBuilder(
+    column: $table.subtitleDelayMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PlaybackPrefsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PlaybackPrefsTable> {
+  $$PlaybackPrefsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<PrefScope, int> get scopeType =>
+      $composableBuilder(column: $table.scopeType, builder: (column) => column);
+
+  GeneratedColumn<String> get scopeKey =>
+      $composableBuilder(column: $table.scopeKey, builder: (column) => column);
+
+  GeneratedColumn<String> get preferredAudioLang => $composableBuilder(
+    column: $table.preferredAudioLang,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get preferredAudioTrackTitle => $composableBuilder(
+    column: $table.preferredAudioTrackTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get preferredSubtitleLang => $composableBuilder(
+    column: $table.preferredSubtitleLang,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get subtitlesEnabled => $composableBuilder(
+    column: $table.subtitlesEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get preferredSpeed => $composableBuilder(
+    column: $table.preferredSpeed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get rememberSpeedPerShow => $composableBuilder(
+    column: $table.rememberSpeedPerShow,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get subtitleDelayMs => $composableBuilder(
+    column: $table.subtitleDelayMs,
+    builder: (column) => column,
+  );
+}
+
+class $$PlaybackPrefsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PlaybackPrefsTable,
+          PlaybackPrefsData,
+          $$PlaybackPrefsTableFilterComposer,
+          $$PlaybackPrefsTableOrderingComposer,
+          $$PlaybackPrefsTableAnnotationComposer,
+          $$PlaybackPrefsTableCreateCompanionBuilder,
+          $$PlaybackPrefsTableUpdateCompanionBuilder,
+          (
+            PlaybackPrefsData,
+            BaseReferences<
+              _$AppDatabase,
+              $PlaybackPrefsTable,
+              PlaybackPrefsData
+            >,
+          ),
+          PlaybackPrefsData,
+          PrefetchHooks Function()
+        > {
+  $$PlaybackPrefsTableTableManager(_$AppDatabase db, $PlaybackPrefsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$PlaybackPrefsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer:
+              () =>
+                  $$PlaybackPrefsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer:
+              () => $$PlaybackPrefsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<PrefScope> scopeType = const Value.absent(),
+                Value<String> scopeKey = const Value.absent(),
+                Value<String?> preferredAudioLang = const Value.absent(),
+                Value<String?> preferredAudioTrackTitle = const Value.absent(),
+                Value<String?> preferredSubtitleLang = const Value.absent(),
+                Value<bool?> subtitlesEnabled = const Value.absent(),
+                Value<double?> preferredSpeed = const Value.absent(),
+                Value<bool?> rememberSpeedPerShow = const Value.absent(),
+                Value<int?> subtitleDelayMs = const Value.absent(),
+              }) => PlaybackPrefsCompanion(
+                id: id,
+                scopeType: scopeType,
+                scopeKey: scopeKey,
+                preferredAudioLang: preferredAudioLang,
+                preferredAudioTrackTitle: preferredAudioTrackTitle,
+                preferredSubtitleLang: preferredSubtitleLang,
+                subtitlesEnabled: subtitlesEnabled,
+                preferredSpeed: preferredSpeed,
+                rememberSpeedPerShow: rememberSpeedPerShow,
+                subtitleDelayMs: subtitleDelayMs,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required PrefScope scopeType,
+                required String scopeKey,
+                Value<String?> preferredAudioLang = const Value.absent(),
+                Value<String?> preferredAudioTrackTitle = const Value.absent(),
+                Value<String?> preferredSubtitleLang = const Value.absent(),
+                Value<bool?> subtitlesEnabled = const Value.absent(),
+                Value<double?> preferredSpeed = const Value.absent(),
+                Value<bool?> rememberSpeedPerShow = const Value.absent(),
+                Value<int?> subtitleDelayMs = const Value.absent(),
+              }) => PlaybackPrefsCompanion.insert(
+                id: id,
+                scopeType: scopeType,
+                scopeKey: scopeKey,
+                preferredAudioLang: preferredAudioLang,
+                preferredAudioTrackTitle: preferredAudioTrackTitle,
+                preferredSubtitleLang: preferredSubtitleLang,
+                subtitlesEnabled: subtitlesEnabled,
+                preferredSpeed: preferredSpeed,
+                rememberSpeedPerShow: rememberSpeedPerShow,
+                subtitleDelayMs: subtitleDelayMs,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          BaseReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PlaybackPrefsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PlaybackPrefsTable,
+      PlaybackPrefsData,
+      $$PlaybackPrefsTableFilterComposer,
+      $$PlaybackPrefsTableOrderingComposer,
+      $$PlaybackPrefsTableAnnotationComposer,
+      $$PlaybackPrefsTableCreateCompanionBuilder,
+      $$PlaybackPrefsTableUpdateCompanionBuilder,
+      (
+        PlaybackPrefsData,
+        BaseReferences<_$AppDatabase, $PlaybackPrefsTable, PlaybackPrefsData>,
+      ),
+      PlaybackPrefsData,
+      PrefetchHooks Function()
+    >;
+typedef $$SubtitleFilesTableCreateCompanionBuilder =
+    SubtitleFilesCompanion Function({
+      Value<int> id,
+      required int mediaFileId,
+      required String uri,
+      Value<String?> languageCode,
+      required SubtitleSource source,
+      Value<bool> selected,
+    });
+typedef $$SubtitleFilesTableUpdateCompanionBuilder =
+    SubtitleFilesCompanion Function({
+      Value<int> id,
+      Value<int> mediaFileId,
+      Value<String> uri,
+      Value<String?> languageCode,
+      Value<SubtitleSource> source,
+      Value<bool> selected,
+    });
+
+final class $$SubtitleFilesTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $SubtitleFilesTable, SubtitleFileData> {
+  $$SubtitleFilesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $MediaFilesTable _mediaFileIdTable(_$AppDatabase db) => db.mediaFiles
+      .createAlias('subtitle_files__media_file_id__media_files__id');
+
+  $$MediaFilesTableProcessedTableManager get mediaFileId {
+    final $_column = $_itemColumn<int>('media_file_id')!;
+
+    final manager = $$MediaFilesTableTableManager(
+      $_db,
+      $_db.mediaFiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_mediaFileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SubtitleFilesTableFilterComposer
+    extends Composer<_$AppDatabase, $SubtitleFilesTable> {
+  $$SubtitleFilesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uri => $composableBuilder(
+    column: $table.uri,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get languageCode => $composableBuilder(
+    column: $table.languageCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<SubtitleSource, SubtitleSource, int>
+  get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get selected => $composableBuilder(
+    column: $table.selected,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$MediaFilesTableFilterComposer get mediaFileId {
+    final $$MediaFilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mediaFileId,
+      referencedTable: $db.mediaFiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MediaFilesTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaFiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SubtitleFilesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SubtitleFilesTable> {
+  $$SubtitleFilesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get uri => $composableBuilder(
+    column: $table.uri,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get languageCode => $composableBuilder(
+    column: $table.languageCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get selected => $composableBuilder(
+    column: $table.selected,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$MediaFilesTableOrderingComposer get mediaFileId {
+    final $$MediaFilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mediaFileId,
+      referencedTable: $db.mediaFiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MediaFilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.mediaFiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SubtitleFilesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SubtitleFilesTable> {
+  $$SubtitleFilesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uri =>
+      $composableBuilder(column: $table.uri, builder: (column) => column);
+
+  GeneratedColumn<String> get languageCode => $composableBuilder(
+    column: $table.languageCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<SubtitleSource, int> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<bool> get selected =>
+      $composableBuilder(column: $table.selected, builder: (column) => column);
+
+  $$MediaFilesTableAnnotationComposer get mediaFileId {
+    final $$MediaFilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mediaFileId,
+      referencedTable: $db.mediaFiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MediaFilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaFiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SubtitleFilesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SubtitleFilesTable,
+          SubtitleFileData,
+          $$SubtitleFilesTableFilterComposer,
+          $$SubtitleFilesTableOrderingComposer,
+          $$SubtitleFilesTableAnnotationComposer,
+          $$SubtitleFilesTableCreateCompanionBuilder,
+          $$SubtitleFilesTableUpdateCompanionBuilder,
+          (SubtitleFileData, $$SubtitleFilesTableReferences),
+          SubtitleFileData,
+          PrefetchHooks Function({bool mediaFileId})
+        > {
+  $$SubtitleFilesTableTableManager(_$AppDatabase db, $SubtitleFilesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$SubtitleFilesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer:
+              () =>
+                  $$SubtitleFilesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer:
+              () => $$SubtitleFilesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> mediaFileId = const Value.absent(),
+                Value<String> uri = const Value.absent(),
+                Value<String?> languageCode = const Value.absent(),
+                Value<SubtitleSource> source = const Value.absent(),
+                Value<bool> selected = const Value.absent(),
+              }) => SubtitleFilesCompanion(
+                id: id,
+                mediaFileId: mediaFileId,
+                uri: uri,
+                languageCode: languageCode,
+                source: source,
+                selected: selected,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int mediaFileId,
+                required String uri,
+                Value<String?> languageCode = const Value.absent(),
+                required SubtitleSource source,
+                Value<bool> selected = const Value.absent(),
+              }) => SubtitleFilesCompanion.insert(
+                id: id,
+                mediaFileId: mediaFileId,
+                uri: uri,
+                languageCode: languageCode,
+                source: source,
+                selected: selected,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          $$SubtitleFilesTableReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: ({mediaFileId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                T extends TableManagerState<
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic
+                >
+              >(state) {
+                if (mediaFileId) {
+                  state =
+                      state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.mediaFileId,
+                            referencedTable: $$SubtitleFilesTableReferences
+                                ._mediaFileIdTable(db),
+                            referencedColumn:
+                                $$SubtitleFilesTableReferences
+                                    ._mediaFileIdTable(db)
+                                    .id,
+                          )
+                          as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SubtitleFilesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SubtitleFilesTable,
+      SubtitleFileData,
+      $$SubtitleFilesTableFilterComposer,
+      $$SubtitleFilesTableOrderingComposer,
+      $$SubtitleFilesTableAnnotationComposer,
+      $$SubtitleFilesTableCreateCompanionBuilder,
+      $$SubtitleFilesTableUpdateCompanionBuilder,
+      (SubtitleFileData, $$SubtitleFilesTableReferences),
+      SubtitleFileData,
+      PrefetchHooks Function({bool mediaFileId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6626,4 +8569,8 @@ class $AppDatabaseManager {
       $$ShowMetadataTableTableManager(_db, _db.showMetadata);
   $$EpisodeMetadataTableTableManager get episodeMetadata =>
       $$EpisodeMetadataTableTableManager(_db, _db.episodeMetadata);
+  $$PlaybackPrefsTableTableManager get playbackPrefs =>
+      $$PlaybackPrefsTableTableManager(_db, _db.playbackPrefs);
+  $$SubtitleFilesTableTableManager get subtitleFiles =>
+      $$SubtitleFilesTableTableManager(_db, _db.subtitleFiles);
 }

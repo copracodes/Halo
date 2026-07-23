@@ -49,6 +49,15 @@ abstract interface class FolderAccess {
   /// caller's job.
   Stream<ScannedFile> listFiles(String folderUri);
 
+  /// Opens [fileUri] and returns a native file descriptor for it. Used to hand
+  /// a `content://` sidecar subtitle to the player as `fd://<n>`, which is how
+  /// content URIs are opened on Android (a platform where they aren't real
+  /// paths). The caller must [closeFileDescriptor] it when done.
+  Future<int> openFileDescriptor(String fileUri);
+
+  /// Closes a descriptor from [openFileDescriptor].
+  Future<void> closeFileDescriptor(int fd);
+
   /// Whether the persisted grant for [folderUri] is still valid (survives app
   /// restarts until the user revokes it).
   Future<bool> hasAccess(String folderUri);

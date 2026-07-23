@@ -4,9 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'match_status.dart';
 import 'media_type.dart';
+import 'pref_scope.dart';
+import 'subtitle_source.dart';
 
 export 'match_status.dart' show MatchStatus, isAutoWritable;
 export 'media_type.dart' show MediaType;
+export 'pref_scope.dart' show PrefScope;
+export 'subtitle_source.dart' show SubtitleSource;
 
 part 'app_database.g.dart';
 
@@ -158,6 +162,88 @@ class EpisodeMetadata extends Table {
       ];
 }
 
+/// Sticky playback preferences, one row per scope (a show, a film, or the
+/// app-wide global fallback). Written silently as the viewer changes tracks or
+/// speed during playback, and resolved on the next open: show/movie level →
+/// global → file defaults.
+///
+/// The inheritable fields are nullable so "not set at this scope" is
+/// distinguishable from "set to a value" — that is what lets a per-show choice
+/// override the global default one field at a time, without a partial write at
+/// one scope clobbering the others.
+@DataClassName('PlaybackPrefsData')
+class PlaybackPrefs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get scopeType => intEnum<PrefScope>()();
+
+  /// The show key or movie key; empty string for the single global row.
+  TextColumn get scopeKey => text()();
+
+  /// Preferred audio by language code (`en`, `eng`, `jpn`, …) and, as a
+  /// fallback for untagged tracks, by track title.
+  TextColumn get preferredAudioLang => text().nullable()();
+  TextColumn get preferredAudioTrackTitle => text().nullable()();
+
+  TextColumn get preferredSubtitleLang => text().nullable()();
+
+  /// Whether subtitles are on. Null means "inherit"; the global row's value is
+  /// the app-wide default.
+  BoolColumn get subtitlesEnabled => boolean().nullable()();
+
+  /// Playback speed. Null means "inherit"; resolves to 1.0 when nothing is set.
+  RealColumn get preferredSpeed => real().nullable()();
+
+  /// Whether speed is remembered per show/movie at all. Meaningful only on the
+  /// global row; null reads as true (on by default).
+  BoolColumn get rememberSpeedPerShow => boolean().nullable()();
+
+  /// Manual subtitle timing offset in milliseconds. Positive shows subtitles
+  /// later, negative earlier. Remembered per show/movie so a source's timing
+  /// quirk stays corrected across episodes. Null reads as no offset.
+  IntColumn get subtitleDelayMs => integer().nullable()();
+
+  /// One row per scope.
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {scopeType, scopeKey},
+      ];
+}
+
+/// External subtitle files associated with a video: sidecars found next to it
+/// during a scan, or files the user loaded by hand. Embedded subtitle tracks
+/// live inside the video and aren't stored here — this is only for the separate
+/// files that sit alongside it.
+@DataClassName('SubtitleFileData')
+class SubtitleFiles extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get mediaFileId => integer()
+      .references(MediaFiles, #id, onDelete: KeyAction.cascade)();
+
+  /// The subtitle file's stable handle: a SAF `content://` URI (or a plain path
+  /// on platforms that use one).
+  TextColumn get uri => text()();
+
+  /// Language code parsed from the filename (`en`, `eng`), or null when the name
+  /// carried none.
+  TextColumn get languageCode => text().nullable()();
+
+  IntColumn get source => intEnum<SubtitleSource>()();
+
+  /// The one external subtitle the viewer last chose for this video, so
+  /// reopening it re-activates exactly that track. At most one row per video is
+  /// selected at a time.
+  BoolColumn get selected => boolean().withDefault(const Constant(false))();
+
+  /// One association per (video, subtitle file), so a rescan re-links rather
+  /// than duplicates.
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {mediaFileId, uri},
+      ];
+}
+
 @DriftDatabase(
   tables: [
     LibraryFolders,
@@ -166,6 +252,8 @@ class EpisodeMetadata extends Table {
     MovieMetadata,
     ShowMetadata,
     EpisodeMetadata,
+    PlaybackPrefs,
+    SubtitleFiles,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -175,7 +263,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'halo'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -196,6 +284,26 @@ class AppDatabase extends _$AppDatabase {
           // defaulted to false, so an existing library keeps every file visible.
           if (from < 4) {
             await m.addColumn(mediaFiles, mediaFiles.hidden);
+          }
+          // v5 adds sticky playback preferences (Phase 4.1). A new table only —
+          // existing installs simply start with no preferences and learn them.
+          if (from < 5) {
+            await m.createTable(playbackPrefs);
+          }
+          // v6 adds external subtitle associations (Phase 4.1b). New table only;
+          // the next scan populates sidecars for the existing library.
+          if (from < 6) {
+            await m.createTable(subtitleFiles);
+          }
+          // v7 adds the manual subtitle-timing offset (Phase 4.1b). Additive and
+          // defaulted to no offset.
+          if (from < 7) {
+            await m.addColumn(playbackPrefs, playbackPrefs.subtitleDelayMs);
+          }
+          // v8 remembers which external subtitle was chosen per video, so it
+          // re-activates automatically. Additive, defaulted to not-selected.
+          if (from < 8) {
+            await m.addColumn(subtitleFiles, subtitleFiles.selected);
           }
         },
         beforeOpen: (details) async {

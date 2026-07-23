@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../core/theme/app_colors.dart';
+import 'playback_prefs.dart';
 import 'player_controller.dart';
 import 'player_model.dart';
 import 'resume_behavior.dart';
@@ -12,6 +13,7 @@ import 'widgets/player_controls_overlay.dart';
 import 'widgets/player_error_view.dart';
 import 'widgets/player_gesture_layer.dart';
 import 'widgets/resume_prompt.dart';
+import 'widgets/subtitle_overlay.dart';
 
 /// Full-screen video playback surface with custom controls, touch gestures, and
 /// desktop keyboard shortcuts. This widget only triggers `open()` and renders
@@ -23,6 +25,7 @@ class PlayerScreen extends ConsumerStatefulWidget {
     this.mediaId,
     this.title,
     this.behavior = ResumeBehavior.ask,
+    this.scope,
   });
 
   /// Where to read the video from: a filesystem path for ad-hoc picked files, or
@@ -39,6 +42,10 @@ class PlayerScreen extends ConsumerStatefulWidget {
 
   /// Whether a saved position is offered, used silently, or ignored.
   final ResumeBehavior behavior;
+
+  /// Which sticky-preferences scope this file plays under (its show or film).
+  /// Null for ad-hoc files, which read global defaults but persist nothing.
+  final PlaybackScope? scope;
 
   @override
   ConsumerState<PlayerScreen> createState() => _PlayerScreenState();
@@ -59,6 +66,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
             mediaId: widget.mediaId,
             title: widget.title,
             behavior: widget.behavior,
+            scope: widget.scope,
           );
     });
   }
@@ -144,6 +152,9 @@ class _ReadyView extends ConsumerWidget {
                 controls: NoVideoControls,
                 fit: BoxFit.contain,
               ),
+            // External subtitles are drawn by Halo, above the video and gesture
+            // surface but below the controls.
+            const Positioned.fill(child: SubtitleOverlay()),
             // Gesture surface sits above the video, below the controls.
             const PlayerGestureLayer(),
             if (buffering)

@@ -1,5 +1,8 @@
 import 'package:media_kit/media_kit.dart';
 
+import '../external_subtitle.dart';
+import '../track_matching.dart';
+
 /// Human-readable label for an embedded audio/subtitle track, preferring the
 /// track's title, then its language, then a positional fallback.
 String trackLabel({
@@ -20,3 +23,11 @@ String audioTrackLabel(AudioTrack track, int index) =>
 
 String subtitleTrackLabel(SubtitleTrack track, int index) =>
     trackLabel(title: track.title, language: track.language, index: index);
+
+/// Label for an external subtitle, marked so it's clearly not embedded, e.g.
+/// "English — external" or "Subtitle 2 — external".
+String externalSubtitleLabel(ExternalSubtitle subtitle, int index) {
+  final name = languageDisplayName(subtitle.lang);
+  final base = name.isNotEmpty ? name : 'Subtitle ${index + 1}';
+  return '$base — external';
+}

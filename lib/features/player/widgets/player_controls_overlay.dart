@@ -5,6 +5,7 @@ import '../player_controller.dart';
 import 'player_bottom_bar.dart';
 import 'player_center_controls.dart';
 import 'player_top_bar.dart';
+import 'subtitle_delay_pill.dart';
 
 /// Fades the Netflix-style control layer in and out. The scrims run edge-to-edge
 /// (they draw behind the status area and display cutout), while the control bars
@@ -60,6 +61,13 @@ class PlayerControlsOverlay extends ConsumerWidget {
             const Align(
               alignment: Alignment.center,
               child: PlayerCenterControls(),
+            ),
+            // Floating subtitle-timing control, tucked under the top bar on the
+            // right. Hides itself unless an external subtitle is active.
+            Positioned(
+              top: safe.top + 56,
+              right: safe.right + 12,
+              child: const SubtitleDelayPill(),
             ),
             Positioned(
               bottom: 0,

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:halo/data/database/app_database.dart';
 import 'package:halo/data/repositories/library_repository.dart';
+import 'package:halo/data/repositories/subtitle_repository.dart';
 import 'package:halo/features/library/folder_access/folder_access.dart';
 import 'package:halo/features/library/library_scanner.dart';
 
@@ -23,6 +24,10 @@ class FakeFolderAccess implements FolderAccess {
   Future<bool> hasAccess(String folderUri) async => true;
   @override
   Future<void> releaseFolder(String folderUri) async {}
+  @override
+  Future<int> openFileDescriptor(String fileUri) async => 0;
+  @override
+  Future<void> closeFileDescriptor(int fd) async {}
 }
 
 ScannedFile _file(String name) => ScannedFile(
@@ -35,6 +40,7 @@ ScannedFile _file(String name) => ScannedFile(
 void main() {
   late AppDatabase db;
   late LibraryRepository library;
+  late SubtitleRepository subtitles;
   late FakeFolderAccess source;
   late LibraryScanner scanner;
   late LibraryFolder folder;
@@ -42,8 +48,9 @@ void main() {
   setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
     library = LibraryRepository(db);
+    subtitles = SubtitleRepository(db);
     source = FakeFolderAccess();
-    scanner = LibraryScanner(source, library);
+    scanner = LibraryScanner(source, library, subtitles);
     await library.addFolder(path: 'content://tree/movies', displayName: 'Movies');
     folder = (await library.allFolders()).single;
   });
@@ -162,5 +169,106 @@ void main() {
     expect(m!.mediaType, MediaType.movie);
     expect(m.parsedTitle, 'Inception');
     expect(m.parsedYear, 2010);
+  });
+
+  group('sidecar subtitles', () {
+    ScannedFile at(String uri, String name, [List<String> parentPath = const []]) =>
+        ScannedFile(uri: uri, name: name, size: 1, lastModified: 0,
+            parentPath: parentPath);
+
+    Future<List<SubtitleFileData>> subsFor(String videoUri) async {
+      final id = (await library.mediaByPath(videoUri))!.id;
+      return subtitles.forMedia(id);
+    }
+
+    test('an exact-basename sidecar is associated with no language', () async {
+      source.files = [
+        at('content://v/ep.mkv', 'Show.S01E01.mkv'),
+        at('content://s/ep.srt', 'Show.S01E01.srt'),
+      ];
+      await scanner.scanFolder(folder);
+
+      final subs = await subsFor('content://v/ep.mkv');
+      expect(subs, hasLength(1));
+      expect(subs.single.uri, 'content://s/ep.srt');
+      expect(subs.single.languageCode, isNull);
+      expect(subs.single.source, SubtitleSource.sidecar);
+    });
+
+    test('a language-suffixed sidecar carries its language', () async {
+      source.files = [
+        at('content://v/ep.mkv', 'Show.S01E01.mkv'),
+        at('content://s/en.srt', 'Show.S01E01.en.srt'),
+        at('content://s/es.srt', 'Show.S01E01.spa.srt'),
+      ];
+      await scanner.scanFolder(folder);
+
+      final subs = await subsFor('content://v/ep.mkv');
+      expect(
+        {for (final s in subs) s.languageCode},
+        {'en', 'es'},
+        reason: 'eng/spa normalise to en/es',
+      );
+    });
+
+    test('a sidecar in a Subs subfolder is associated', () async {
+      source.files = [
+        at('content://v/ep.mkv', 'Show.S01E01.mkv'),
+        at('content://s/ep.srt', 'Show.S01E01.en.srt', const ['Subs']),
+      ];
+      await scanner.scanFolder(folder);
+
+      expect(await subsFor('content://v/ep.mkv'), hasLength(1));
+    });
+
+    test('an unrelated subtitle is not associated', () async {
+      source.files = [
+        at('content://v/ep.mkv', 'Show.S01E01.mkv'),
+        at('content://s/other.srt', 'Different.Movie.srt'),
+      ];
+      await scanner.scanFolder(folder);
+
+      expect(await subsFor('content://v/ep.mkv'), isEmpty);
+    });
+
+    test('a sidecar removed from disk is dropped on rescan', () async {
+      source.files = [
+        at('content://v/ep.mkv', 'Show.S01E01.mkv'),
+        at('content://s/ep.srt', 'Show.S01E01.srt'),
+      ];
+      await scanner.scanFolder(folder);
+      expect(await subsFor('content://v/ep.mkv'), hasLength(1));
+
+      // The subtitle file is gone on the next scan.
+      source.files = [at('content://v/ep.mkv', 'Show.S01E01.mkv')];
+      await scanner.scanFolder(folder);
+
+      expect(await subsFor('content://v/ep.mkv'), isEmpty,
+          reason: 'a missing sidecar silently drops its association');
+    });
+
+    test('the chosen external subtitle is remembered per video', () async {
+      source.files = [
+        at('content://v/ep.mkv', 'Show.S01E01.mkv'),
+        at('content://s/en.srt', 'Show.S01E01.en.srt'),
+        at('content://s/es.srt', 'Show.S01E01.es.srt'),
+      ];
+      await scanner.scanFolder(folder);
+      final id = (await library.mediaByPath('content://v/ep.mkv'))!.id;
+
+      await subtitles.setSelected(id, 'content://s/es.srt');
+      var rows = await subtitles.forMedia(id);
+      expect(rows.singleWhere((r) => r.selected).uri, 'content://s/es.srt');
+
+      // Choosing another clears the previous selection (at most one).
+      await subtitles.setSelected(id, 'content://s/en.srt');
+      rows = await subtitles.forMedia(id);
+      expect(rows.where((r) => r.selected).map((r) => r.uri),
+          ['content://s/en.srt']);
+
+      await subtitles.clearSelected(id);
+      rows = await subtitles.forMedia(id);
+      expect(rows.where((r) => r.selected), isEmpty);
+    });
   });
 }

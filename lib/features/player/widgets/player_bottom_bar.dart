@@ -129,6 +129,10 @@ class _AudioButton extends ConsumerWidget {
   }
 }
 
+/// Sentinel value for the "Load subtitle file…" item, distinct from any track
+/// id or subtitle URI.
+const _loadSubtitleValue = '__halo_load_subtitle__';
+
 class _SubtitleButton extends ConsumerWidget {
   const _SubtitleButton();
 
@@ -137,22 +141,56 @@ class _SubtitleButton extends ConsumerWidget {
     final controller = ref.read(playerControllerProvider.notifier);
     final tracks =
         ref.watch(playerControllerProvider.select((s) => s.subtitleTracks));
+    final external =
+        ref.watch(playerControllerProvider.select((s) => s.externalSubtitles));
     final activeId =
         ref.watch(playerControllerProvider.select((s) => s.activeSubtitleId));
-    final off = activeId == null || activeId == 'no' || activeId == 'auto';
+    final activeExternal =
+        ref.watch(playerControllerProvider.select((s) => s.activeExternalUri));
+    final off = activeExternal == null &&
+        (activeId == null || activeId == 'no' || activeId == 'auto');
+
+    void onSelected(String value) {
+      if (value == _loadSubtitleValue) {
+        controller.loadSubtitleFile();
+      } else if (external.any((s) => s.uri == value)) {
+        controller.selectExternalSubtitle(value);
+      } else {
+        controller.selectSubtitleTrack(value);
+      }
+    }
 
     return PopupMenuButton<String>(
       tooltip: 'Subtitles',
       color: AppColors.surface,
-      onSelected: controller.selectSubtitleTrack,
+      onSelected: onSelected,
       itemBuilder: (context) => [
         _checkedItem(value: 'no', label: 'Off', selected: off),
         for (var i = 0; i < tracks.length; i++)
           _checkedItem(
             value: tracks[i].id,
             label: subtitleTrackLabel(tracks[i], i),
-            selected: tracks[i].id == activeId,
+            selected: activeExternal == null && tracks[i].id == activeId,
           ),
+        for (var i = 0; i < external.length; i++)
+          _checkedItem(
+            value: external[i].uri,
+            label: externalSubtitleLabel(external[i], i),
+            selected: external[i].uri == activeExternal,
+          ),
+        const PopupMenuItem<String>(
+          value: _loadSubtitleValue,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 24,
+                child: Icon(Icons.upload_file, size: 16, color: Colors.white70),
+              ),
+              Text('Load subtitle file…',
+                  style: TextStyle(color: Colors.white)),
+            ],
+          ),
+        ),
       ],
       child: _IconLabel(
         icon: off ? Icons.closed_caption_off : Icons.closed_caption,

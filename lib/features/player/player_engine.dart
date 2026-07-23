@@ -12,8 +12,10 @@ abstract class PlayerEngine {
   VideoController? get videoController;
 
   /// Opens [uri]. When [startAt] is given, playback *begins* at that position
-  /// rather than starting at zero and seeking afterwards.
-  Future<void> open(String uri, {Duration? startAt});
+  /// rather than starting at zero and seeking afterwards. With [play] false the
+  /// file loads paused, so preferred tracks can be applied before the first
+  /// frame is shown — no flash of the wrong subtitle.
+  Future<void> open(String uri, {Duration? startAt, bool play = true});
   Future<void> play();
   Future<void> pause();
   Future<void> playOrPause();
@@ -47,8 +49,8 @@ class MediaKitEngine implements PlayerEngine {
   /// after open races the demuxer becoming ready and can be silently dropped,
   /// leaving playback at zero.
   @override
-  Future<void> open(String uri, {Duration? startAt}) =>
-      _player.open(Media(uri, start: startAt));
+  Future<void> open(String uri, {Duration? startAt, bool play = true}) =>
+      _player.open(Media(uri, start: startAt), play: play);
 
   @override
   Future<void> play() => _player.play();

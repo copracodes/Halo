@@ -1,6 +1,8 @@
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import 'external_subtitle.dart';
+
 /// Top-level screen phase.
 enum PlayerPhase { loading, ready, error }
 
@@ -56,8 +58,12 @@ class PlayerModel {
     this.isFullscreen = false,
     this.audioTracks = const [],
     this.subtitleTracks = const [],
+    this.externalSubtitles = const [],
     this.activeAudioId,
     this.activeSubtitleId,
+    this.activeExternalUri,
+    this.subtitleCue,
+    this.subtitleDelay = Duration.zero,
     this.hint = GestureHint.none,
     this.resumeFrom,
   });
@@ -93,9 +99,27 @@ class PlayerModel {
   final List<AudioTrack> audioTracks;
   final List<SubtitleTrack> subtitleTracks;
 
+  /// External sidecar/manual subtitle files offered alongside the embedded
+  /// tracks (Phase 4.1b).
+  final List<ExternalSubtitle> externalSubtitles;
+
   /// Id of the currently selected track (`'no'` means subtitles are off).
   final String? activeAudioId;
   final String? activeSubtitleId;
+
+  /// URI of the currently selected external subtitle, or null when the active
+  /// subtitle is embedded or off. Kept separately because an external track's
+  /// media_kit id doesn't match the file URI we know it by.
+  final String? activeExternalUri;
+
+  /// The external subtitle line to show right now, or null. External subtitles
+  /// are rendered by Halo itself (media_kit can't load them on Android), so this
+  /// is the current cue's text, updated as playback advances.
+  final String? subtitleCue;
+
+  /// Manual subtitle timing offset applied to external subtitles: positive
+  /// shows them later, negative earlier.
+  final Duration subtitleDelay;
 
   /// Current transient gesture indicator.
   final GestureHint hint;
@@ -124,8 +148,12 @@ class PlayerModel {
     bool? isFullscreen,
     List<AudioTrack>? audioTracks,
     List<SubtitleTrack>? subtitleTracks,
+    List<ExternalSubtitle>? externalSubtitles,
     String? activeAudioId,
     String? activeSubtitleId,
+    Object? activeExternalUri = _unset,
+    Object? subtitleCue = _unset,
+    Duration? subtitleDelay,
     GestureHint? hint,
     Object? resumeFrom = _unset,
   }) {
@@ -146,8 +174,16 @@ class PlayerModel {
       isFullscreen: isFullscreen ?? this.isFullscreen,
       audioTracks: audioTracks ?? this.audioTracks,
       subtitleTracks: subtitleTracks ?? this.subtitleTracks,
+      externalSubtitles: externalSubtitles ?? this.externalSubtitles,
       activeAudioId: activeAudioId ?? this.activeAudioId,
       activeSubtitleId: activeSubtitleId ?? this.activeSubtitleId,
+      activeExternalUri: identical(activeExternalUri, _unset)
+          ? this.activeExternalUri
+          : activeExternalUri as String?,
+      subtitleCue: identical(subtitleCue, _unset)
+          ? this.subtitleCue
+          : subtitleCue as String?,
+      subtitleDelay: subtitleDelay ?? this.subtitleDelay,
       hint: hint ?? this.hint,
       resumeFrom: identical(resumeFrom, _unset)
           ? this.resumeFrom

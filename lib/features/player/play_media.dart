@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/database/app_database.dart';
 import '../library/media_display.dart';
+import 'playback_prefs.dart';
 import 'player_screen.dart';
 import 'resume_behavior.dart';
 
@@ -23,6 +24,8 @@ Future<void> playMediaFile(
         mediaId: file.filePath,
         title: file.playerTitle,
         behavior: behavior,
+        // Episodes share their show's sticky preferences; films get their own.
+        scope: PlaybackScope.forFile(file),
       ),
     ),
   );

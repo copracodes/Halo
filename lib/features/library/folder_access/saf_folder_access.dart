@@ -62,6 +62,16 @@ class SafFolderAccess implements FolderAccess {
   }
 
   @override
+  Future<int> openFileDescriptor(String fileUri) {
+    return _saf.getFileDescriptor(fileUri);
+  }
+
+  @override
+  Future<void> closeFileDescriptor(int fd) {
+    return _saf.closeFileDescriptor(fd);
+  }
+
+  @override
   Future<bool> hasAccess(String folderUri) {
     return _saf.hasPersistedPermission(folderUri);
   }

@@ -4,6 +4,7 @@ import '../../data/database/app_database.dart';
 import '../../data/repositories/library_repository.dart';
 import '../../data/repositories/media_with_progress.dart';
 import '../../data/repositories/progress_repository.dart';
+import '../../data/repositories/subtitle_repository.dart';
 import 'folder_access/saf_folder_access.dart';
 import 'library_scanner.dart';
 import 'library_sort.dart';
@@ -22,6 +23,7 @@ final libraryScannerProvider = Provider<LibraryScanner>((ref) {
   return LibraryScanner(
     ref.watch(folderAccessProvider),
     ref.watch(libraryRepositoryProvider),
+    ref.watch(subtitleRepositoryProvider),
   );
 });
 
